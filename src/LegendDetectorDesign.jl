@@ -7,6 +7,22 @@ Detector design tools for the LEGEND experiment.
 """
 module LegendDetectorDesign
 
-# include("some_source_file.jl")
+using LinearAlgebra
+using PropDicts
+using Unitful
+using LegendDataManagement
+using SolidStateDetectors
+
+import SolidStateDetectors: 
+            SSDFloat, AbstractImpurityDensity, Simulation, AbstractCoordinatePoint
+import Base: show, print, println
+
+include("Units.jl")
+include("Geometry/Geometry.jl")
+include("DetectorDesign.jl")
+include("ImpurityDensities.jl")
+include("Characterize.jl")
+
+export DetectorDesign, InvertedCoaxDesign, InvertedCoaxGeometry, SegregationImpurityDensity, ValidGeometry, InvalidGeometry, characterize!
 
 end # module

@@ -3,10 +3,18 @@ uuid = "a36173eb-ee8f-473c-bbea-a8a9322f1a0c"
 version = "0.1.0"
 
 [deps]
-
-[weakdeps]
+LegendDataManagement = "9feedd95-f0e0-423f-a8dc-de0970eae6b3"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PropDicts = "4dc08600-4268-439e-8673-d706fafbb426"
+SolidStateDetectors = "71e43887-2bd9-5f77-aebd-47f656f0a3f0"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [extensions]
 
 [compat]
+LegendDataManagement = "0.4.0"
+LinearAlgebra = "1.11.0"
+PropDicts = "0.2.9"
+SolidStateDetectors = "0.10.10"
+Unitful = "1.22.0"
 julia = "1.10"
