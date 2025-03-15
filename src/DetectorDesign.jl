@@ -52,7 +52,7 @@ function InvertedCoaxDesign(::Type{T};
 
     rpass =  pc_radius ≤ groove_inner_radius < groove_outer_radius < radius && borehole_radius < radius
     hpass = borehole_taper_height ≤ height - borehole_pc_gap && top_taper_height < height 
-    V = if rpass && hpass
+    V = if rpass && hpass && offset >= height
         ValidGeometry
     else
         InvalidGeometry
@@ -67,14 +67,15 @@ end
 
 function print(io::IO, det::DetectorDesign{T}) where {T <: SSDFloat}
     g1,g2,g3,g4,g5,g6,g7 = get_unicode_rep(det.geometry)
+    vopstr = ismissing(det.Vop) ? missing : Int(round(det.Vop, digits = 0))*internal_voltage_unit 
     vstr = ismissing(det.Vdep) ? missing : Int(round(det.Vdep, digits = 0))*internal_voltage_unit 
     o,vstr = det.is_simulated && ismissing(det.Vdep) ? ("◯", "> $(det.Vop) V") : (" " , vstr)
-    estr = ismissing(det.Emin) ? missing : "$(Int(round(det.Emin, digits = 0))*internal_efield_unit) @ r = $(round(1.0*det.Emin_pos[1], digits = 1)*internal_length_unit), z = $(round(1.0*det.Emin_pos[2], digits = 1)*internal_length_unit)"
+    estr = ismissing(det.Emin) ? missing : "$(round(1.0*det.Emin, digits = 1)*internal_efield_unit) @ r = $(round(1.0*det.Emin_pos[1], digits = 1)*internal_length_unit), z = $(round(1.0*det.Emin_pos[2], digits = 1)*internal_length_unit)"
     println(io, "$g1  DetectorDesign{$T} - $(det.name)")
     println(io, "$g2  ╰─Geometry: $(typeof(det.geometry))")
     println(io, "$g3  ╰─Offset of p⁺contact from seed end: $(round(1.0*det.offset, digits = 1)*internal_length_unit)")
     println(io, "$g4  ╰─Minimum E field: $estr")
-    println(io, "$g5  $o  $g6  ╰─Depletion Voltage: $vstr")
+    println(io, "$g5  $o  $g6  ╰─Depletion/Operational Voltage: $vstr / $vopstr")
     println(io, "$g7  ╰─Mass: $( ismissing(det.mass) ? missing : Int(round(det.mass, digits = 0))*internal_mass_unit)")
 end
 
@@ -97,6 +98,12 @@ end
 function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
     meta = design_2_meta(det)
     sim = Simulation{T}(LegendData, meta, PropDict(), env)
-    sim.detector = SolidStateDetector(sim.detector, imp_model);
+    sim.detector = SolidStateDetector(sim.detector, imp_model); ##hotfix since LegendDataManagement does not take the imputrity model yet
     sim
+end
+
+function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
+    meta = design_2_meta(det)
+    ssd = SolidStateDetector{T}(LegendData, meta, PropDict(), env)
+    SolidStateDetector(ssd, imp_model); ##hotfix since LegendDataManagement does not take the imputrity model yet
 end
