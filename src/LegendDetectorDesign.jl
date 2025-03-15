@@ -15,7 +15,7 @@ using SolidStateDetectors
 
 import SolidStateDetectors: 
             SSDFloat, AbstractImpurityDensity, Simulation, AbstractCoordinatePoint
-import Base: show, print, println
+import Base: show, print, println, *
 
 include("Units.jl")
 include("Geometry/Geometry.jl")

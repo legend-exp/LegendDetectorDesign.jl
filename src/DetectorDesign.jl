@@ -72,7 +72,7 @@ function print(io::IO, det::DetectorDesign{T}) where {T <: SSDFloat}
     estr = ismissing(det.Emin) ? missing : "$(Int(round(det.Emin, digits = 0))*internal_efield_unit) @ r = $(round(1.0*det.Emin_pos[1], digits = 1)*internal_length_unit), z = $(round(1.0*det.Emin_pos[2], digits = 1)*internal_length_unit)"
     println(io, "$g1  DetectorDesign{$T} - $(det.name)")
     println(io, "$g2  ╰─Geometry: $(typeof(det.geometry))")
-    println(io, "$g3  ╰─Offset from seed end: $(round(1.0det.mass, digits = 1)*det.offset*internal_length_unit)")
+    println(io, "$g3  ╰─Offset of p⁺contact from seed end: $(round(1.0*det.offset, digits = 1)*internal_length_unit)")
     println(io, "$g4  ╰─Minimum E field: $estr")
     println(io, "$g5  $o  $g6  ╰─Depletion Voltage: $vstr")
     println(io, "$g7  ╰─Mass: $( ismissing(det.mass) ? missing : Int(round(det.mass, digits = 0))*internal_mass_unit)")

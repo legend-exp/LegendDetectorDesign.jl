@@ -40,8 +40,11 @@ function find_minimum_Efield_in_bulk(sim::Simulation; require_local_min = false,
     end
 end
 
-function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment(); verbose::Bool = false, Vop::Union{Missing, <:Real} = missing) where {T<:AbstractFloat}
+function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment(); verbose::Bool = false, Vop::Real = default_operational_V) where {T<:AbstractFloat}
     det.Vop = Vop
+    det.Emin = missing
+    det.Emin_pos = missing
+    det.Vdep = missing
     sim = Simulation{T}(det, imp_model, env)
     calculate_electric_potential!(sim, 
         refinement_limits = [0.2, 0.1], 
