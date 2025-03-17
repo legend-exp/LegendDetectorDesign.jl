@@ -15,13 +15,14 @@ using SolidStateDetectors
 
 import SolidStateDetectors: 
             SSDFloat, AbstractImpurityDensity, Simulation, AbstractCoordinatePoint, update_till_convergence!, mark_bulk_bits!, mark_undep_bits!
-            
+
 import Base: show, print, println, *
 
 include("Units.jl")
 include("Geometry/Geometry.jl")
 include("DetectorDesign.jl")
 include("ImpurityDensities.jl")
+include("ElectricField.jl")
 include("Characterize.jl")
 
 export DetectorDesign, InvertedCoaxDesign, InvertedCoaxGeometry, SegregationImpurityDensity, ValidGeometry, InvalidGeometry, characterize!
