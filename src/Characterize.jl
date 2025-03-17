@@ -19,7 +19,7 @@ function populate_design!(det::DetectorDesign{T}, sim::Simulation{T}, Vop::T; ve
         emin, pos = find_minimum_Efield_in_bulk(sim, require_local_min = true)
         det.Emin = T(to_internal_units(emin))
         det.Emin_pos = (T(to_internal_units(pos[1])), T(to_internal_units(pos[3])))
-        if verbose @info "$(Int(round(det.Emin, digits = 0))*internal_efield_unit) @ r = $(round(1.0*det.Emin_pos[1], digits = 1)*internal_length_unit), z = $(round(1.0*det.Emin_pos[2], digits = 1)*internal_length_unit)" end
+        if verbose @info @sprintf("%.2f V/cm @ r = %.2f, z = %.2f", det.Emin, det.Emin_pos...) end
     end
 end
 

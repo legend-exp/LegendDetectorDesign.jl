@@ -67,10 +67,10 @@ end
 
 function print(io::IO, det::DetectorDesign{T}) where {T <: SSDFloat}
     g1,g2,g3,g4,g5,g6,g7 = get_unicode_rep(det.geometry)
-    vopstr = ismissing(det.Vop) ? missing : Int(round(det.Vop, digits = 0))*internal_voltage_unit 
-    vstr = ismissing(det.Vdep) ? missing : Int(round(det.Vdep, digits = 0))*internal_voltage_unit 
+    vopstr = ismissing(det.Vop) ? missing : @sprintf("%.1f V", det.Vop)
+    vstr = ismissing(det.Vdep) ? missing : @sprintf("%.1f V", det.Vdep)
     o,vstr = det.is_simulated && ismissing(det.Vdep) ? ("◯", "> $(det.Vop) V") : (" " , vstr)
-    estr = ismissing(det.Emin) ? missing : "$(round(1.0*det.Emin, digits = 1)*internal_efield_unit) @ r = $(round(1.0*det.Emin_pos[1], digits = 1)*internal_length_unit), z = $(round(1.0*det.Emin_pos[2], digits = 1)*internal_length_unit)"
+    estr = ismissing(det.Emin) ? missing : @sprintf("%.1f V/cm @ r = %.1f, z = %.1f", det.Emin, det.Emin_pos...)
     println(io, "$g1  DetectorDesign{$T} - $(det.name)")
     println(io, "$g2  ╰─Geometry: $(typeof(det.geometry))")
     println(io, "$g3  ╰─Offset of p⁺contact from seed end: $(round(1.0*det.offset, digits = 1)*internal_length_unit)")

@@ -12,6 +12,7 @@ using PropDicts
 using Unitful
 using LegendDataManagement
 using SolidStateDetectors
+using Printf
 
 import SolidStateDetectors: 
             SSDFloat, AbstractImpurityDensity, Simulation, AbstractCoordinatePoint, update_till_convergence!, mark_bulk_bits!, mark_undep_bits!
