@@ -16,6 +16,55 @@ struct InvertedCoaxGeometry{T,V} <: AbstractDesignGeometry{T,V}
 	bottom_taper_angle::T
 end
 
+function InvertedCoaxGeometry{T}(
+        height::T,
+        radius::T,
+        pc_radius::T,
+        groove_depth::T,
+        groove_outer_radius::T,
+        groove_inner_radius::T,
+        borehole_pc_gap::T,
+        borehole_radius::T,
+        borehole_taper_height::T,
+        borehole_taper_angle::T,
+        top_taper_height::T,
+        top_taper_angle::T,
+        bottom_taper_height::T,
+        bottom_taper_angle::T
+    ) where {T}
+
+    rpass =  pc_radius ≤ groove_inner_radius < groove_outer_radius < radius && borehole_radius < radius
+    hpass = borehole_taper_height ≤ height - borehole_pc_gap && top_taper_height < height
+
+    InvertedCoaxGeometry{T, rpass && hpass ? ValidGeometry : InvalidGeometry}(
+        height, radius, pc_radius, groove_depth, groove_outer_radius,
+        groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height,
+        borehole_taper_angle, top_taper_height, top_taper_angle, bottom_taper_height, bottom_taper_angle
+    )
+end
+
+function InvertedCoaxGeometry(geo::InvertedCoaxGeometry{T}; 
+        height::T = geo.height,
+        radius::T = geo.radius,
+        pc_radius::T = geo.pc_radius,
+        groove_depth::T = geo.groove_depth,
+        groove_outer_radius::T = geo.groove_outer_radius,
+        groove_inner_radius::T = geo.groove_inner_radius,
+        borehole_pc_gap::T = geo.borehole_pc_gap,
+        borehole_radius::T = geo.borehole_radius,
+        borehole_taper_height::T = geo.borehole_taper_height,
+        borehole_taper_angle::T = geo.borehole_taper_angle,
+        top_taper_height::T = geo.top_taper_height,
+        top_taper_angle::T = geo.top_taper_angle,
+        bottom_taper_height::T = geo.bottom_taper_height,
+        bottom_taper_angle::T = geo.bottom_taper_angle
+    ) where {T <: SSDFloat}
+
+    InvertedCoaxGeometry{T, ValidGeometry}(
+        height, radius, pc_radius, groove_depth, groove_outer_radius, groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height, borehole_taper_angle, top_taper_height, top_taper_angle, bottom_taper_height, bottom_taper_angle
+    )
+end
+
 function get_unicode_rep(geo::InvertedCoaxGeometry{T, ValidGeometry}) where {T}
     "╭───╮ ╭───╮", 
     "│   │ │   │",

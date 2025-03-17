@@ -4,7 +4,7 @@ abstract type AbstractDetectorDesign{T <: SSDFloat, G <: AbstractDesignGeometry}
 
 mutable struct DetectorDesign{T,G} <: AbstractDetectorDesign{T,G}
     name::AbstractString
-    geometry::AbstractDesignGeometry{T}
+    geometry::Union{AbstractDesignGeometry{T}, Missing}
     offset::T
     mass::Union{T, Missing}
     is_simulated::Bool
@@ -14,24 +14,30 @@ mutable struct DetectorDesign{T,G} <: AbstractDetectorDesign{T,G}
     Vop::Union{T, Missing}
 end
 
+function DetectorDesign(det::DetectorDesign{T}, geo::AbstractDesignGeometry{T}) where {T <: SSDFloat}
+    DetectorDesign{T, typeof(geo)}(det.name, geo, det.offset, T(ge_76_density)*get_physical_volume(geo), false, missing, missing, missing, missing)
+end
+
+InvertedCoaxDesign(det::DetectorDesign{T}, geo::InvertedCoaxGeometry{T}) where {T <: SSDFloat} = DetectorDesign(det, geo)
+
 function InvertedCoaxDesign(::Type{T};
-    name::AbstractString,
-    height::Number,
-    radius::Number,
-    pc_radius::Number,
-    groove_depth::Number = 2,
-    groove_inner_radius::Number = to_internal_length_units(pc_radius),
-    groove_outer_radius::Number = to_internal_length_units(groove_inner_radius) + 3,
-    borehole_pc_gap::Number,
-    borehole_radius::Number,
-    borehole_taper_height::Number = 0,
-    borehole_taper_angle::Number = 5,
-    top_taper_height::Number = 1,
-    top_taper_angle::Number = 45,
-    bottom_taper_height::Number = 1,
-    bottom_taper_angle::Number = 45,
-    offset::Number
-    ) where {T}
+        name::AbstractString,
+        height::Number,
+        radius::Number,
+        pc_radius::Number,
+        groove_depth::Number = 2,
+        groove_inner_radius::Number = to_internal_length_units(pc_radius),
+        groove_outer_radius::Number = to_internal_length_units(groove_inner_radius) + 3,
+        borehole_pc_gap::Number,
+        borehole_radius::Number,
+        borehole_taper_height::Number = 0,
+        borehole_taper_angle::Number = 5,
+        top_taper_height::Number = 1,
+        top_taper_angle::Number = 45,
+        bottom_taper_height::Number = 1,
+        bottom_taper_angle::Number = 45,
+        offset::Number
+    ) where {T <: SSDFloat}
 
     height = T(to_internal_length_units(height))
     radius = T(to_internal_length_units(radius))
@@ -49,20 +55,17 @@ function InvertedCoaxDesign(::Type{T};
     borehole_taper_angle = T(to_internal_angle_units(borehole_taper_angle))
     top_taper_angle = T(to_internal_angle_units(top_taper_angle))
     bottom_taper_angle = T(to_internal_angle_units(bottom_taper_angle))
-
-    rpass =  pc_radius ≤ groove_inner_radius < groove_outer_radius < radius && borehole_radius < radius
-    hpass = borehole_taper_height ≤ height - borehole_pc_gap && top_taper_height < height 
-    V = if rpass && hpass && offset >= height
-        ValidGeometry
-    else
-        InvalidGeometry
-    end
-    geo = InvertedCoaxGeometry{T, V}(
+ 
+    geo = InvertedCoaxGeometry{T}(
         height, radius, pc_radius, groove_depth, groove_outer_radius,
         groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height,
         borehole_taper_angle, top_taper_height, top_taper_angle, bottom_taper_height, bottom_taper_angle
     )
-    DetectorDesign{T, typeof(geo)}(name, geo, offset, T(ge_76_density)*get_physical_volume(geo), false, missing, missing, missing, missing)
+    if is_valid_geometry(geo) && offset >= geo.height
+        DetectorDesign{T, InvertedCoaxGeometry{T,ValidGeometry}}(name, geo, offset, T(ge_76_density)*get_physical_volume(geo), false, missing, missing, missing, missing)
+    else
+        DetectorDesign{T, InvertedCoaxGeometry{T,InvalidGeometry}}(name, missing, offset, missing, false, missing, missing, missing, missing)
+    end
 end
 
 function print(io::IO, det::DetectorDesign{T}) where {T <: SSDFloat}

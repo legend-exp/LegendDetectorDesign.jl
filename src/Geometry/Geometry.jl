@@ -8,6 +8,9 @@ include("InvertedCoaxGeometry.jl")
 
 get_physical_volume(geo::AbstractDesignGeometry{T, InvalidGeometry}) where {T} = missing
 
+is_valid_geometry(geo::AbstractDesignGeometry{T, InvalidGeometry}) where {T} = false
+is_valid_geometry(geo::AbstractDesignGeometry{T, ValidGeometry}) where {T} = true
+
 function show(io::IO, geo::AbstractDesignGeometry{T, ValidGeometry}) where {T <: SSDFloat}
     print(io, geo)
 end
