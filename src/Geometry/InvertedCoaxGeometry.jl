@@ -59,8 +59,8 @@ function InvertedCoaxGeometry(geo::InvertedCoaxGeometry{T};
         bottom_taper_height::T = geo.bottom_taper_height,
         bottom_taper_angle::T = geo.bottom_taper_angle
     ) where {T <: SSDFloat}
-
-    InvertedCoaxGeometry{T, ValidGeometry}(
+    
+    InvertedCoaxGeometry{T}(
         height, radius, pc_radius, groove_depth, groove_outer_radius, groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height, borehole_taper_angle, top_taper_height, top_taper_angle, bottom_taper_height, bottom_taper_angle
     )
 end
