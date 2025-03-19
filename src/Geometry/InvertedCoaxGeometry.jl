@@ -32,7 +32,8 @@ function InvertedCoaxGeometry{T}(
         bottom_taper_height::T,
         bottom_taper_angle::T
     ) where {T}
-
+    
+    #Not all checks are implemented
     rpass =  pc_radius ≤ groove_inner_radius < groove_outer_radius < radius && borehole_radius < radius
     hpass = borehole_taper_height ≤ height - borehole_pc_gap && top_taper_height < height
 
