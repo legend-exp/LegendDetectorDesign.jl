@@ -110,3 +110,8 @@ function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, imp_m
     ssd = SolidStateDetector{T}(LegendData, meta, PropDict(), env)
     SolidStateDetector(ssd, imp_model); ##hotfix since LegendDataManagement does not take the imputrity model yet
 end
+
+function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
+    meta = design_2_meta(det)
+    SolidStateDetector{T}(LegendData, meta, PropDict(), env)
+end
