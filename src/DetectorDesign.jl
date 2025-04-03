@@ -36,7 +36,8 @@ function InvertedCoaxDesign(::Type{T};
         top_taper_angle::Number = 45,
         bottom_taper_height::Number = 1,
         bottom_taper_angle::Number = 45,
-        offset::Number
+        offset::Number,
+        dead_layer_depth::Number = 1,
     ) where {T <: SSDFloat}
 
     height = T(to_internal_length_units(height))
@@ -51,15 +52,14 @@ function InvertedCoaxDesign(::Type{T};
     top_taper_height = T(to_internal_length_units(top_taper_height))
     bottom_taper_height = T(to_internal_length_units(bottom_taper_height))
     offset = T(to_internal_length_units(offset))
+    dead_layer_depth = T(to_internal_length_units(dead_layer_depth))
 
     borehole_taper_angle = T(to_internal_angle_units(borehole_taper_angle))
     top_taper_angle = T(to_internal_angle_units(top_taper_angle))
     bottom_taper_angle = T(to_internal_angle_units(bottom_taper_angle))
  
     geo = InvertedCoaxGeometry{T}(
-        height, radius, pc_radius, groove_depth, groove_outer_radius,
-        groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height,
-        borehole_taper_angle, top_taper_height, top_taper_angle, bottom_taper_height, bottom_taper_angle
+        height, radius, pc_radius, groove_depth, groove_outer_radius, groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height, borehole_taper_angle, top_taper_height, top_taper_angle, bottom_taper_height, bottom_taper_angle, dead_layer_depth
     )
     if is_valid_geometry(geo) && offset >= geo.height
         DetectorDesign{T, InvertedCoaxGeometry{T,ValidGeometry}}(name, geo, offset, T(ge_76_density)*get_physical_volume(geo), false, missing, missing, missing, missing)

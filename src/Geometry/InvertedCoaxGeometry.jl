@@ -14,6 +14,7 @@ struct InvertedCoaxGeometry{T,V} <: AbstractDesignGeometry{T,V}
 	top_taper_angle::T
     bottom_taper_height::T
 	bottom_taper_angle::T
+    dead_layer_depth::T
 end
 
 function InvertedCoaxGeometry{T}(
@@ -30,7 +31,8 @@ function InvertedCoaxGeometry{T}(
         top_taper_height::T,
         top_taper_angle::T,
         bottom_taper_height::T,
-        bottom_taper_angle::T
+        bottom_taper_angle::T,
+        dead_layer_depth::T
     ) where {T}
     
     #Not all checks are implemented
@@ -38,9 +40,7 @@ function InvertedCoaxGeometry{T}(
     hpass = borehole_taper_height ≤ height - borehole_pc_gap && top_taper_height < height
 
     InvertedCoaxGeometry{T, rpass && hpass ? ValidGeometry : InvalidGeometry}(
-        height, radius, pc_radius, groove_depth, groove_outer_radius,
-        groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height,
-        borehole_taper_angle, top_taper_height, top_taper_angle, bottom_taper_height, bottom_taper_angle
+        height, radius, pc_radius, groove_depth, groove_outer_radius, groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height, borehole_taper_angle, top_taper_height, top_taper_angle,bottom_taper_height, bottom_taper_angle, dead_layer_depth
     )
 end
 
@@ -58,11 +58,12 @@ function InvertedCoaxGeometry(geo::InvertedCoaxGeometry{T};
         top_taper_height::T = geo.top_taper_height,
         top_taper_angle::T = geo.top_taper_angle,
         bottom_taper_height::T = geo.bottom_taper_height,
-        bottom_taper_angle::T = geo.bottom_taper_angle
+        bottom_taper_angle::T = geo.bottom_taper_angle,
+        dead_layer_depth::T = geo.dead_layer_depth
     ) where {T <: SSDFloat}
     
     InvertedCoaxGeometry{T}(
-        height, radius, pc_radius, groove_depth, groove_outer_radius, groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height, borehole_taper_angle, top_taper_height, top_taper_angle, bottom_taper_height, bottom_taper_angle
+        height, radius, pc_radius, groove_depth, groove_outer_radius, groove_inner_radius, borehole_pc_gap, borehole_radius, borehole_taper_height, borehole_taper_angle, top_taper_height, top_taper_angle, bottom_taper_height, bottom_taper_angle, dead_layer_depth
     )
 end
 
@@ -123,7 +124,11 @@ function design_2_meta(geo::InvertedCoaxGeometry{T,ValidGeometry};
         "geometry" => geodict,
         "type" => "icpc",
         "name" => name,
-        "characterization" => PropDict("manufacturer" => PropDict("recommended_voltage_in_V" => ismissing(Vop) ? default_operational_V : Vop))
+        "characterization" => PropDict("manufacturer" => PropDict(
+                                                            "recommended_voltage_in_V" => ismissing(Vop) ? default_operational_V : Vop,
+                                                            "dl_thickness_in_mm" => geo.dead_layer_depth
+                                                        )
+                              )
     ) 
 end
 
@@ -131,8 +136,8 @@ function print(io::IO, geo::InvertedCoaxGeometry{T, ValidGeometry}) where {T <: 
     g1,g2,g3,g4,g5,g6,g7 = get_unicode_rep(geo)
     br, pr,r, h, hg = Int.(round.((geo.borehole_radius, geo.pc_radius, geo.radius, geo.height, geo.borehole_pc_gap)))
     println(io, "     ╭╮$(lpad(string(br), 2, ' '))ₘₘ       $(typeof(geo))")
-    println(io, "$g1  ╮    ╰─Bulk: Radius, Height, p⁺contact radius:")
-    println(io, "$g2  │      ╰─$(geo.radius), $(geo.height), $(geo.pc_radius) mm")
+    println(io, "$g1  ╮    ╰─Bulk: Radius, Height, p⁺ radius, n⁺ depth:")
+    println(io, "$g2  │      ╰─$(geo.radius), $(geo.height), $(geo.pc_radius) mm, $(geo.dead_layer_depth) mm")
     println(io, "$g3  │    ╰─Borehole: Gap, Radius, Taper height/angle:")
     println(io, "$g4  │      ╰─$(geo.borehole_pc_gap), $(geo.borehole_radius), $(geo.borehole_taper_height) mm / $(geo.borehole_taper_angle)°")
     println(io, "$g5$(lpad(string(hg), 3, ' '))ₘₘ$g6 $(lpad(string(h), 3, ' '))ₘₘ ╰─Goove: Depth, Inner/Outer radius:")
