@@ -10,11 +10,6 @@ const internal_density_unit  = u"g/cm^3"
 const internal_impurity_quantity  = 1e9u"cm^-3"
 const ge_76_density = 5.544
 const default_operational_V = 5000
-const internal_segregation_fit_units = [internal_impurity_quantity, 
-internal_impurity_quantity/internal_length_unit, 
-internal_impurity_quantity, 
-1*internal_length_unit, 
-1*internal_length_unit]
 
 to_internal_units(x::Quantity{<:Real}) = throw(ArgumentError("Unit $(unit(x)) unknown to LegendGeDesign.jl"))
 to_internal_units(x::Quantity{<:Real, dimension(internal_voltage_unit)}) = ustrip(internal_voltage_unit, x)
