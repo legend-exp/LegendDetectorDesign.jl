@@ -98,6 +98,15 @@ function design_2_meta(det::DetectorDesign{T})::PropDict where {T}
     design_2_meta(det.geometry, Vop = det.Vop, name = det.name)   
 end
 
+function meta_2_design(::Type{T}, meta::PropDict) where {T}
+    if meta.type == "icpc"
+        geo = meta_2_geo(InvertedCoaxGeometry{T}, meta)
+        DetectorDesign{T, typeof(geo)}(meta.name, geo, T(0), T(ge_76_density)*get_physical_volume(geo), false, missing, missing, T(meta.characterization.manufacturer.depletion_voltage_in_V), T(meta.characterization.manufacturer.recommended_voltage_in_V))
+    else
+        throw(ArgumentError("Unknown geometry type $(meta.type)"))
+    end
+end
+
 function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
     meta = design_2_meta(det)
     sim = Simulation{T}(LegendData, meta, PropDict(), env)

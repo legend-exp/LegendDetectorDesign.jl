@@ -132,6 +132,28 @@ function design_2_meta(geo::InvertedCoaxGeometry{T,ValidGeometry};
     ) 
 end
 
+function meta_2_geo(::Type{InvertedCoaxGeometry{T}}, meta::PropDict) where {T}
+    dead_layer_depth = :dl_thickness_in_mm in keys(meta.characterization.manufacturer) ? meta.characterization.manufacturer.dl_thickness_in_mm : 1
+    geo = meta.geometry
+    InvertedCoaxGeometry{T}(
+        T(geo.height_in_mm),
+        T(geo.radius_in_mm),
+        T(geo.pp_contact.radius_in_mm),
+        T(geo.groove.depth_in_mm),
+        T(geo.groove.radius_in_mm.outer),
+        T(geo.groove.radius_in_mm.inner),
+        T(geo.height_in_mm - geo.borehole.depth_in_mm),
+        T(geo.borehole.radius_in_mm),
+        T(geo.taper.borehole.height_in_mm),
+        T(geo.taper.borehole.angle_in_deg),
+        T(geo.taper.top.height_in_mm),
+        T(geo.taper.top.angle_in_deg),
+        T(geo.taper.bottom.height_in_mm), 
+        T(geo.taper.bottom.angle_in_deg),
+        T(dead_layer_depth)
+    )
+end
+
 function print(io::IO, geo::InvertedCoaxGeometry{T, ValidGeometry}) where {T <: SSDFloat}
     g1,g2,g3,g4,g5,g6,g7 = get_unicode_rep(geo)
     br, pr,r, h, hg = Int.(round.((geo.borehole_radius, geo.pc_radius, geo.radius, geo.height, geo.borehole_pc_gap)))

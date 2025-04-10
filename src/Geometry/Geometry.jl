@@ -11,6 +11,14 @@ get_physical_volume(geo::AbstractDesignGeometry{T, InvalidGeometry}) where {T} =
 is_valid_geometry(geo::AbstractDesignGeometry{T, InvalidGeometry}) where {T} = false
 is_valid_geometry(geo::AbstractDesignGeometry{T, ValidGeometry}) where {T} = true
 
+function meta_2_geo(::Type{T}, meta::PropDict) where {T}
+    if meta.type == "icpc"
+        meta_2_geo(InvertedCoaxGeometry{T}, meta)
+    else
+        throw(ArgumentError("Unknown geometry type $(meta.type)"))
+    end
+end
+
 function show(io::IO, geo::AbstractDesignGeometry{T, ValidGeometry}) where {T <: SSDFloat}
     print(io, geo)
 end
