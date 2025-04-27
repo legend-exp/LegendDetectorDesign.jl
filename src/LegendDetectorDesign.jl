@@ -26,6 +26,6 @@ include("ImpurityDensities.jl")
 include("ElectricField.jl")
 include("Characterize.jl")
 
-export DetectorDesign, InvertedCoaxDesign, InvertedCoaxGeometry, LinExpBouleImpurityDensity, LinBouleImpurityDensity, ValidGeometry, InvalidGeometry, characterize!
+export DetectorDesign, InvertedCoaxDesign, InvertedCoaxGeometry, LinBouleImpurityDensity, ParBouleImpurityDensity, LinExpBouleImpurityDensity, ParExpBouleImpurityDensity, ValidGeometry, InvalidGeometry, characterize!
 
 end # module

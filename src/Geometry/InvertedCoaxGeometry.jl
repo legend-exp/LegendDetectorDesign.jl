@@ -90,13 +90,23 @@ function get_physical_volume(geo::InvertedCoaxGeometry{T, ValidGeometry})::T whe
 	# volume of the cylindrical part of the borehole
 	V_borehole_cyl = π*geo.borehole_radius^2 * ((geo.height - geo.borehole_pc_gap) - geo.borehole_taper_height)
 
-	# volume of the inner tapered part of the borehole 
+	# volume of the tapered part of the borehole 
 	# -> a truncated cone
 	rtop_borehole = geo.borehole_radius + geo.borehole_taper_height*tand(geo.borehole_taper_angle)
 	V_borehole_cone = 1/3 * π * (rtop_borehole^2+rtop_borehole*geo.borehole_radius+geo.borehole_radius^2) * geo.borehole_taper_height
 
 	# total volume 
 	Vtot = V_cyl + V_top_cone + V_bottom_cone - V_borehole_cyl - V_borehole_cone
+    ustrip(u"cm^3", Vtot*internal_length_unit^3)
+end
+
+function get_borehole_surface_volume(geo::InvertedCoaxGeometry{T, ValidGeometry}, depth::Real)::T where {T}
+    V_borehole_cyl = π * depth * (2*geo.borehole_radius + depth) * ((geo.height - geo.borehole_pc_gap) - geo.borehole_taper_height)
+
+	rtop_borehole = geo.borehole_radius + geo.borehole_taper_height*tand(geo.borehole_taper_angle)
+	V_borehole_cone = π * depth * (geo.borehole_radius + rtop_borehole + depth) * geo.borehole_taper_height
+    
+	Vtot = V_borehole_cone + V_borehole_cyl
     ustrip(u"cm^3", Vtot*internal_length_unit^3)
 end
 

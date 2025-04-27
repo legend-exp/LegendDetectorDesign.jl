@@ -53,11 +53,16 @@ function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensit
             Vdep = T(to_internal_units(estimate_depletion_voltage(sim, check_for_depletion = false, verbose = verbose)))
             det.Vdep = Vdep
             if verbose @info "Simulating at Vdep + 500V...\n" end
-            sim = characterize!(det, imp_model, Vdep + 500, env = env, check_for_depletion = false, verbose = verbose, refinement_limits = refinement_limits, initialize = false)
+            sim = characterize!(det, imp_model, Vdep + 500, env = env, check_for_depletion = false, verbose = verbose, refinement_limits = refinement_limits, initialize = false) ##this is building ssd detector from ldet again, need to write a characterize function for Simulation
         end
     end
     sim
 end
+
+#=
+function characterize!(sim::Simulation{T}, imp_model::AbstractImpurityDensity{T}, Vop::Real;
+    #todo
+end=#
 
 function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, Vop::Real;
     env::HPGeEnvironment = HPGeEnvironment(),
@@ -96,7 +101,7 @@ function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensit
 ) where {T<:AbstractFloat}
 
     det.Vop = Vop
-    reference_simulation.detector = SolidStateDetector{T}(det, imp_model)
+    reference_simulation.detector = SolidStateDetector{T}(det, imp_model) ##is this necessary?
     
     update_till_convergence!( reference_simulation, ElectricPotential,
                                     n_iterations_between_checks = 1000,

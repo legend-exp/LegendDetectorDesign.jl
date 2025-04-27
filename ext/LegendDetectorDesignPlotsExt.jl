@@ -17,28 +17,28 @@ struct LinearMeasurement{T} <: AbstractMeasurement{T}
     offset::T
     annotation::AbstractString
     guides::Tuple{T,T}
-    guide_offset::T
+    guide_offset::Tuple{T,T}
 end
 
 function LinearMeasurement{T}(p1::Tuple{<:Real,<:Real}, p2::Tuple{<:Real,<:Real}, offset::Real, annotation::AbstractString) where {T}
-    LinearMeasurement{T}(p1, p2, offset, annotation, (offset,offset), 1)
+    LinearMeasurement{T}(p1, p2, offset, annotation, (offset,offset), (1,1))
 end
 
 struct AngularMeasurement{T} <: AbstractMeasurement{T}
-    origin::Tuple{T,T}
-    reference::T
+    p1::Tuple{T,T}
+    p2::Tuple{T,T}
+    p3::Tuple{T,T}
     offset::T
     annotation::AbstractString
     guides::Tuple{T,T}
+    guide_offset::Tuple{T,T}
 end
 
-get_internal_unit(m::LinearMeasurement) = internal_length_unit
-get_internal_unit(m::AngularMeasurement) = internal_angle_unit
-
+get_internal_dispay_unit(m::LinearMeasurement) = ""
+get_internal_dispay_unit(m::AngularMeasurement) = "°"
 
 function get_annotation_info(m::LinearMeasurement{T}) where {T}
-    p1 = [m.p1...]
-    p2 = [m.p2...]
+    p1, p2 = [m.p1...], [m.p2...]
     u = p2 - p1
     unorm = norm(u)
     u = u/unorm
@@ -47,14 +47,94 @@ function get_annotation_info(m::LinearMeasurement{T}) where {T}
     (p1+p2)/2 + 3*[−u[2],u[1]], atand(u[2], u[1]), unorm
 end
 
-@recipe function f(m::LinearMeasurement{T}; arrows_and_guides = :both, annotate_length = true, measurementfontsize = 6) where {T}
-    seriestype := :shape
-    linecolor --> :black
-    fillcolor := :black
+function get_annotation_info(m::AngularMeasurement{T}) where {T}
+    p1, p2, p3 = [m.p1...], [m.p2...], [m.p3...]
+    u = p1 - p2
+    unorm = norm(u)
+    u = u/unorm
+    v = p3 - p2
+    vnorm = norm(v)
+    v = v/vnorm
+    θu, θv  = atan(u[2], u[1]), atan(v[2], v[1])
+
+    θv = θv + 2π * (θv < θu ? 1 : 0)
+    θ, θmid = rad2deg(θv - θu), rad2deg((θv + θu)/2)
+    (m.offset+3) *[reverse(sincosd(θmid))...] + p2, θmid-90, θ
+end
+
+@recipe function f(m::AngularMeasurement{T}; arrows_and_guides = :both, annotate_measurement = true, measurementfontsize = 6, arrow_length = 1) where {T}
+    linecolor --> :gray
+    fillcolor := :gray
     aspect_ratio := 1.0
     label --> nothing
-    p1 = [m.p1...]
-    p2 = [m.p2...]
+    p1, p2, p3 = [m.p1...], [m.p2...], [m.p3...]
+    u = p1 - p2
+    unorm = norm(u)
+    u = u/unorm
+    v = p3 - p2
+    vnorm = norm(v)
+    v = v/vnorm
+    θu, θv  = atan(u[2], u[1]), atan(v[2], v[1])
+    pu = m.offset *[reverse(sincos(θu))...] + p2
+    pv = m.offset *[reverse(sincos(θv))...] + p2
+
+    θv = θv + 2π * (θv < θu ? 1 : 0)
+    θ, θmid = rad2deg(θv - θu), rad2deg((θv + θu)/2)
+    n_arc = 60
+    θextra = θ > 30 ? 0 : π/12
+    θrange = range(θu - θextra, θv + θextra, n_arc)
+    x = m.offset * cos.(θrange) .+ p2[1]
+    y = m.offset * sin.(θrange) .+ p2[2]
+    
+    atext = if annotate_measurement 
+        alabel = m.annotation * (abs(θ - round(θ)) > 0.05 ? "$(@sprintf("%.1f", θ))" : "$(@sprintf("%.0f", θ))") * get_internal_dispay_unit(m)
+        Plots.text(alabel, measurementfontsize, :gray, :center, rotation=θmid-90)
+    else
+        Plots.text(m.annotation, measurementfontsize, :gray, :center, rotation=θmid-90)
+    end
+    annotations --> (x[Int(n_arc/2)] + 3 *cosd(θmid), y[Int(n_arc/2)] + 3 * sind(θmid), atext)
+    @series begin
+        seriestype := :path
+        x,y
+    end
+
+    Ru = [cos(θu+π/2) -sin(θu+π/2); sin(θu+π/2)  cos(θu+π/2)]
+    Rv = [cos(θv+π/2) -sin(θv+π/2); sin(θv+π/2)  cos(θv+π/2)]
+    Rend, Rstart, pend, pstart = θ > 30 ? (Rv, Ru, pv, pu) : (Ru, Rv, pu, pv)
+
+    plotelements = Tuple{Vector{Float64}, Vector{Float64}}[]
+    if arrows_and_guides == :end || arrows_and_guides == :both
+        arrow_points = [[-2arrow_length,-arrow_length/2], [0, 0], [-2arrow_length,arrow_length/2]]
+        arrow_points_t = broadcast(p -> Rend*p + pend, arrow_points)
+        arrow = getindex.(arrow_points_t,1),getindex.(arrow_points_t, 2)
+        
+        guide_points = [pv - (m.guides[1] - m.guide_offset[1])*v, pv + m.guide_offset[1]*v]
+        guide = getindex.(guide_points,1), getindex.(guide_points,2)
+        push!(plotelements, arrow, guide)
+    end
+    if arrows_and_guides == :start || arrows_and_guides == :both
+        arrow_points = [[2arrow_length,-arrow_length/2], [0, 0], [2arrow_length,arrow_length/2]]
+        arrow_points_t = broadcast(p -> Rstart*p + pstart, arrow_points)
+        arrow = getindex.(arrow_points_t,1),getindex.(arrow_points_t, 2)
+        
+        guide_points = [pu - (m.guides[2] - m.guide_offset[2])*u, pu + m.guide_offset[2]*u]
+        guide = getindex.(guide_points,1), getindex.(guide_points,2)
+        push!(plotelements, arrow, guide)
+    end
+    @series begin
+        seriestype := :shape
+        plotelements
+    end
+    
+end
+
+@recipe function f(m::LinearMeasurement{T}; arrows_and_guides = :both, annotate_measurement = true, measurementfontsize = 6, arrow_length = 1) where {T}
+    seriestype := :shape
+    linecolor --> :gray
+    fillcolor := :gray
+    aspect_ratio := 1.0
+    label --> nothing
+    p1, p2 = [m.p1...], [m.p2...] 
     u = p2 - p1
     unorm = norm(u)
     u = u/unorm
@@ -63,41 +143,41 @@ end
     p1 = p1 + m.offset*[−u[2],u[1]]
     p2 = p2 + m.offset*[−u[2],u[1]]
 
+    ## offset for annotation is hardcode to 3 mm for now
     mid = (p1+p2)/2 + 3*[−u[2],u[1]]
 
-    atext = if annotate_length 
-        alabel = m.annotation * (unorm % 1 > 0 ? "$(@sprintf("%.1f", unorm))" : "$(@sprintf("%.0f", unorm))")
-        Plots.text(alabel, measurementfontsize, :black, :center, rotation=rad2deg(θ))
+    atext = if annotate_measurement 
+        alabel = m.annotation * (abs(unorm - round(unorm)) > 0.05 ? "$(@sprintf("%.1f", unorm))" : "$(@sprintf("%.0f", unorm))") * get_internal_dispay_unit(m)
+        Plots.text(alabel, measurementfontsize, :gray, :center, rotation=rad2deg(θ))
     else
-        Plots.text(m.annotation, measurementfontsize, :black, :center, rotation=rad2deg(θ))
+        Plots.text(m.annotation, measurementfontsize, :gray, :center, rotation=rad2deg(θ))
     end
 
     annotations --> (mid[1], mid[2], atext)
         
     R = T.([cos(θ) -sin(θ); sin(θ)  cos(θ)])
-    a_len = 1
-    invert_offset, extend = if unorm < a_len*8 (unorm, 5) else (0,0) end
-    l1 = p1 - extend*a_len*u
-    l2 = p2 + extend*a_len*u
+    invert_offset, extend = if unorm < arrow_length*8 (unorm, 5) else (0,0) end
+    l1 = p1 - extend*arrow_length*u
+    l2 = p2 + extend*arrow_length*u
     line = [l1[1], l2[1]], [l1[2], l2[2]]
 
     plotelements = [line]
     if arrows_and_guides == :end || arrows_and_guides == :both
-        arrow_points = [T.([-a_len,-0.5]), T.([a_len, 0]), T.([-a_len,0.5])]
-        arrow_points_t = broadcast(p -> R*p + p2 - a_len*u - invert_offset*u, arrow_points)
+        arrow_points = [[-2arrow_length,-arrow_length/2], [0, 0], [-2arrow_length,arrow_length/2]]
+        arrow_points_t = broadcast(p -> R*p + p2 - invert_offset*u, arrow_points)
         arrow = getindex.(arrow_points_t,1),getindex.(arrow_points_t, 2)
         
-        guide_points = [T.([0,sign(m.offset)]), T.([0,-m.guides[2]+m.guide_offset*sign(m.offset)])]
+        guide_points = [[0,m.guide_offset[2]*sign(m.offset)], [0,-m.guides[2]+m.guide_offset[2]*sign(m.offset)]]
         guide_points_t = broadcast(p -> R*p + p2, guide_points)
         guide = getindex.(guide_points_t,1), getindex.(guide_points_t,2)
         push!(plotelements, arrow, guide)
     end
     if arrows_and_guides == :start || arrows_and_guides == :both
-        arrow_points = [T.([a_len,-0.5]), T.([-a_len, 0]), T.([a_len,0.5])]
-        arrow_points_t = broadcast(p -> R*p + p1 + a_len*u + invert_offset*u, arrow_points)
+        arrow_points = [[2arrow_length,-arrow_length/2], [0, 0], [2arrow_length,arrow_length/2]]
+        arrow_points_t = broadcast(p -> R*p + p1 + invert_offset*u, arrow_points)
         arrow = getindex.(arrow_points_t,1),getindex.(arrow_points_t,2)
 
-        guide_points = [T.([0,sign(m.offset)]), T.([0,-m.guides[1]+m.guide_offset*sign(m.offset)])]
+        guide_points = [[0,m.guide_offset[1]*sign(m.offset)], [0,-m.guides[1]+m.guide_offset[1]*sign(m.offset)]]
         guide_points_t = broadcast(p -> R*p + p1, guide_points)
         guide = getindex.(guide_points_t,1), getindex.(guide_points_t,2)
         push!(plotelements, arrow, guide)
@@ -105,7 +185,7 @@ end
     plotelements
 end
 
-@recipe function f(vm::AbstractVector{<:LinearMeasurement}; annotate_length = true, measurementfontsize = 6)
+@recipe function f(vm::AbstractVector{<:AbstractMeasurement}; annotate_measurement = true, measurementfontsize = 6)
     aspect_ratio := 1.0
     arrows_and_guides --> :both
 
@@ -114,11 +194,10 @@ end
     rot = getindex.(info, 2)
     len = getindex.(info, 3)
     ant = getproperty.(vm, :annotation)
+    alen = annotate_measurement ? broadcast(l -> abs(l - round(l)) > 0.05 ? "$(@sprintf("%.1f", l))" : "$(@sprintf("%.0f", l))", len) : ""
+    labels = ant .* alen .* get_internal_dispay_unit.(vm)
 
-    alen = annotate_length ? broadcast(l -> l % 1 > 0 ? "$(@sprintf("%.1f", l))" : "$(@sprintf("%.0f", l))", len) : ""
-    labels = ant .* alen 
-
-    labelsf = [Plots.text(labels[i], measurementfontsize, :black, :center, rotation=rot[i]) for i in 1:length(vm)]
+    labelsf = [Plots.text(labels[i], measurementfontsize, :gray, :center, rotation=rot[i]) for i in 1:length(vm)]
     for m in vm
         @series begin
             m
@@ -137,7 +216,6 @@ end
 @recipe function f(geo::InvertedCoaxGeometry{T, ValidGeometry}; corner_rounding = true, include_measurements = false) where {T}
     fc = include_measurements ? :white : :grey
     seriestype := :shape
-    linecolor --> :black
     fillcolor --> fc
     aspect_ratio := 1.0
     label --> nothing
@@ -184,28 +262,35 @@ end
     det_x = vcat(detbot_x, dettop_x, detbot_x[1:1])
     @series begin
         linestyle := :solid
+        linecolor --> :black
         det_x, det_y
     end
     if include_measurements
         @series begin
-            annotate_length --> true
+            annotate_measurement --> true
             linestyle := :solid
-            [
+            vm = AbstractMeasurement[
                 LinearMeasurement{T}((-R, 0), (-R, H),16,""),
                 LinearMeasurement{T}((-R, H), (R, H),16,"Ø"),
                 LinearMeasurement{T}((-geo.groove_inner_radius, 0), (geo.groove_inner_radius, 0),-10,"Ø"),
                 LinearMeasurement{T}((-geo.groove_outer_radius, 0), (geo.groove_outer_radius, 0),-20,"Ø"),
                 LinearMeasurement{T}((-geo.borehole_radius, geo.borehole_pc_gap), (geo.borehole_radius,  geo.borehole_pc_gap),-9,"Ø"),
-                LinearMeasurement{T}((-borehole_x, geo.borehole_pc_gap), (-borehole_x,  H),10,"",(10+borehole_x-geo.borehole_radius,10), 2),
-                LinearMeasurement{T}((borehole_x, H - geo.borehole_taper_height), (borehole_x, H),-10,"",(-10-borehole_x+geo.borehole_radius,-10), 2),
+                LinearMeasurement{T}((-borehole_x, geo.borehole_pc_gap), (-borehole_x,  H),10,"",(10+borehole_x-geo.borehole_radius, 0), (2,0)),
                 LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,"Ø"),
-                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (-geo.groove_outer_radius, geo.groove_depth),8,"")
+                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (-geo.groove_outer_radius, geo.groove_depth),8,"", (0,8), (0,1)),
             ]
+            if geo.borehole_taper_angle > 0
+                if geo.borehole_taper_height != H - geo.borehole_pc_gap
+                    push!(vm,LinearMeasurement{T}((borehole_x, H - geo.borehole_taper_height), (borehole_x, H), -10,"",(-10-borehole_x+geo.borehole_radius, 0), (2,0)))
+                end
+                push!(vm, AngularMeasurement{T}((borehole_x, H), (geo.borehole_radius, H - geo.borehole_taper_height), (geo.borehole_radius, H), 25, "", (26,0), (1,0)))
+            end
+            vm
         end
         if corner_rounding
             @series begin
                 linestyle := :solid
-                annotate_length := false
+                annotate_measurement := false
                 arrows_and_guides := :start
                 o = 10
                 [
@@ -217,14 +302,16 @@ end
             ##Outer taper measurements
         end
         @series begin
-            linestyle --> :dash
-                [
-                    [-geo.groove_outer_radius, 0, 1, 2, 3, geo.groove_outer_radius], [-geo.borehole_radius, geo.borehole_radius],
-                ],
-                [
-                    [geo.groove_depth, geo.groove_depth, geo.groove_depth, geo.groove_depth, geo.groove_depth, geo.groove_depth], [H - geo.borehole_taper_height, H - geo.borehole_taper_height]
-                ]
-            
+            linestyle --> :solid
+            linecolor --> :gray
+            x = [[-geo.groove_inner_radius, geo.groove_inner_radius]]
+                #, [-geo.borehole_radius, geo.borehole_radius],
+            y = [[geo.groove_depth, geo.groove_depth]] #, [H - geo.borehole_taper_height, H - geo.borehole_taper_height]
+            if geo.borehole_taper_angle > 0 && geo.borehole_taper_height != H - geo.borehole_pc_gap
+                push!(x, [-geo.borehole_radius, geo.borehole_radius])
+                push!(y, [H - geo.borehole_taper_height, H - geo.borehole_taper_height])
+            end
+            x, y
         end
     end
 end

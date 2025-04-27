@@ -101,7 +101,9 @@ end
 function meta_2_design(::Type{T}, meta::PropDict) where {T}
     if meta.type == "icpc"
         geo = meta_2_geo(InvertedCoaxGeometry{T}, meta)
-        DetectorDesign{T, typeof(geo)}(meta.name, geo, T(0), T(ge_76_density)*get_physical_volume(geo), false, missing, missing, T(meta.characterization.manufacturer.depletion_voltage_in_V), T(meta.characterization.manufacturer.recommended_voltage_in_V))
+        Vdep = :depletion_voltage_in_V in keys(meta.characterization.manufacturer) ? T(meta.characterization.manufacturer.depletion_voltage_in_V) : missing
+        Vop = :recommended_voltage_in_V in keys(meta.characterization.manufacturer) ? T(meta.characterization.manufacturer.recommended_voltage_in_V) : missing
+        DetectorDesign{T, typeof(geo)}(meta.name, geo, T(0), T(ge_76_density)*get_physical_volume(geo), false, missing, missing, Vdep, Vop)
     else
         throw(ArgumentError("Unknown geometry type $(meta.type)"))
     end
@@ -109,18 +111,18 @@ end
 
 function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
     meta = design_2_meta(det)
-    sim = Simulation{T}(LegendData, meta, PropDict(), env)
-    sim.detector = SolidStateDetector(sim.detector, imp_model); ##hotfix since LegendDataManagement does not take the imputrity model yet
+    sim = Simulation{T}(LegendData, meta, env)
+    sim.detector = SolidStateDetector(sim.detector, imp_model)
     sim
 end
 
 function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
     meta = design_2_meta(det)
-    ssd = SolidStateDetector{T}(LegendData, meta, PropDict(), env)
-    SolidStateDetector(ssd, imp_model); ##hotfix since LegendDataManagement does not take the imputrity model yet
+    ssd = SolidStateDetector{T}(LegendData, meta, env)
+    SolidStateDetector(ssd, imp_model)
 end
 
 function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
     meta = design_2_meta(det)
-    SolidStateDetector{T}(LegendData, meta, PropDict(), env)
+    SolidStateDetector{T}(LegendData, meta, env)
 end

@@ -28,6 +28,7 @@ to_internal_angle_units(x::Quantity{<:Real, dimension(internal_angle_unit)}) = t
 to_internal_ssd_units(x::Quantity{<:Real, dimension(internal_length_unit)}) = ustrip(SolidStateDetectors.internal_length_unit,  x)
 to_internal_ssd_units(x::Quantity{<:Real, dimension(internal_impurity_quantity)}) = ssd_ptype * ustrip(SolidStateDetectors.internal_length_unit^-3,  x)
 to_internal_ssd_units(x::Quantity{<:Real, dimension(internal_impurity_quantity/internal_length_unit)}) = ssd_ptype * ustrip(SolidStateDetectors.internal_length_unit^-4,  x)
+to_internal_ssd_units(x::Quantity{<:Real, dimension(internal_impurity_quantity/internal_length_unit^2)}) = ssd_ptype * ustrip(SolidStateDetectors.internal_length_unit^-5,  x)
 
 
 from_internal_units(x::Real, unit::Unitful.Units{<:Any, dimension(internal_length_unit)}) = uconvert(unit, x * internal_length_unit);
