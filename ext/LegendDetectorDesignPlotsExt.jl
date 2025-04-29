@@ -266,6 +266,7 @@ end
         det_x, det_y
     end
     if include_measurements
+        hastaper = geo.borehole_taper_height > 0
         @series begin
             annotate_measurement --> true
             linestyle := :solid
@@ -276,13 +277,13 @@ end
                 LinearMeasurement{T}((-geo.groove_outer_radius, 0), (geo.groove_outer_radius, 0),-20,"Ø"),
                 LinearMeasurement{T}((-geo.borehole_radius, geo.borehole_pc_gap), (geo.borehole_radius,  geo.borehole_pc_gap),-9,"Ø"),
                 LinearMeasurement{T}((-borehole_x, geo.borehole_pc_gap), (-borehole_x,  H),10,"",(10+borehole_x-geo.borehole_radius, 0), (2,0)),
-                LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,"Ø"),
                 LinearMeasurement{T}((-geo.groove_outer_radius, 0), (-geo.groove_outer_radius, geo.groove_depth),8,"", (0,8), (0,1)),
             ]
-            if geo.borehole_taper_angle > 0
+            if geo.borehole_taper_angle > 0 && geo.borehole_taper_height > 0
                 if geo.borehole_taper_height != H - geo.borehole_pc_gap
                     push!(vm,LinearMeasurement{T}((borehole_x, H - geo.borehole_taper_height), (borehole_x, H), -10,"",(-10-borehole_x+geo.borehole_radius, 0), (2,0)))
                 end
+                push!(vm, LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,"Ø"))
                 push!(vm, AngularMeasurement{T}((borehole_x, H), (geo.borehole_radius, H - geo.borehole_taper_height), (geo.borehole_radius, H), 25, "", (26,0), (1,0)))
             end
             vm
