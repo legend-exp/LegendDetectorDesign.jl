@@ -266,7 +266,6 @@ end
         det_x, det_y
     end
     if include_measurements
-        hastaper = geo.borehole_taper_height > 0
         @series begin
             annotate_measurement --> true
             linestyle := :solid
