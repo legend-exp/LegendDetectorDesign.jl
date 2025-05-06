@@ -64,7 +64,7 @@ function InvertedCoaxDesign(::Type{T};
     if is_valid_geometry(geo) && offset >= geo.height
         DetectorDesign{T, InvertedCoaxGeometry{T,ValidGeometry}}(name, geo, offset, T(ge_76_density)*get_physical_volume(geo), false, missing, missing, missing, missing)
     else
-        DetectorDesign{T, InvertedCoaxGeometry{T,InvalidGeometry}}(name, missing, offset, missing, false, missing, missing, missing, missing)
+        DetectorDesign{T, InvertedCoaxGeometry{T,InvalidGeometry}}(name, geo, offset, missing, false, missing, missing, missing, missing)
     end
 end
 

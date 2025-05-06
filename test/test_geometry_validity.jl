@@ -13,7 +13,7 @@ using LegendDetectorDesign
         borehole_pc_gap = 30,
         borehole_taper_height = 46,
         borehole_radius = 4,
-        offset = 0
+        offset = 120
         )
     @test typeof(ldet.geometry).parameters[2] == ValidGeometry
 
