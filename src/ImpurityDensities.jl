@@ -28,6 +28,7 @@ end
 =#
 const internal_linear_fit_units = [internal_impurity_quantity, internal_impurity_quantity/internal_length_unit]
 
+#= Move to SSD
 (*)(idm::AbstractImpurityDensity{T}, scale::Real) where {T} = (*)(scale, idm)
 
 (*)(scale::Real, idm::LinBouleImpurityDensity{T}) where {T} = LinBouleImpurityDensity{T}(T(scale*idm.a), T(scale*idm.b), idm.det_z0)
@@ -37,9 +38,9 @@ const internal_linear_fit_units = [internal_impurity_quantity, internal_impurity
 (*)(scale::Real, idm::LinExpBouleImpurityDensity{T}) where {T} = LinExpBouleImpurityDensity{T}(T(scale*idm.a), T(scale*idm.b), T(scale*idm.n), idm.l, idm.m, idm.det_z0)
 
 (*)(scale::Real, idm::ParExpBouleImpurityDensity{T}) where {T} = ParExpBouleImpurityDensity{T}(T(scale*idm.a), T(scale*idm.b), T(scale*idm.c), T(scale*idm.n), idm.l, idm.m, idm.det_z0)
+=#
 
-
-function LinBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Number) where {T}
+function SolidStateDetectors.LinBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Number) where {T}
     @assert length(fitpars) == 2 "Need 2 fit parameters"
     LinBouleImpurityDensity(
         T.(to_internal_ssd_units.(fitpars))..., 
@@ -47,7 +48,7 @@ function LinBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Number)
         )
 end
 
-function LinBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
+function SolidStateDetectors.LinBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
     @assert length(fitpars) == 2 "Need 2 fit parameters"
     LinBouleImpurityDensity(
         T.(to_internal_ssd_units.(internal_linear_fit_units .* fitpars))...,
@@ -55,7 +56,7 @@ function LinBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
         )
 end
 
-function ParBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Number) where {T}
+function SolidStateDetectors.ParBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Number) where {T}
     @assert length(fitpars) == 3 "Need 3 fit parameters"
     ParBouleImpurityDensity(
         T.(to_internal_ssd_units.(fitpars))..., 
@@ -63,7 +64,7 @@ function ParBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Number)
         )
 end
 
-function ParBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
+function SolidStateDetectors.ParBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
     @assert length(fitpars) == 3 "Need 3 fit parameters"
     ParBouleImpurityDensity(
         T.(to_internal_ssd_units.(internal_linear_fit_units .* fitpars))...,
@@ -71,7 +72,7 @@ function ParBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
         )
 end
 
-function LinExpBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Number) where {T}
+function SolidStateDetectors.LinExpBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Number) where {T}
     @assert length(fitpars) == 5 "Need 5 fit parameters"
     LinExpBouleImpurityDensity(
         T.(to_internal_ssd_units.(fitpars))..., 
@@ -79,7 +80,7 @@ function LinExpBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Numb
         )
 end
 
-function LinExpBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
+function SolidStateDetectors.LinExpBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
     @assert length(fitpars) == 5 "Need 5 fit parameters"
     LinExpBouleImpurityDensity(
         T.(to_internal_ssd_units.(internal_segregation_fit_units .* fitpars))...,

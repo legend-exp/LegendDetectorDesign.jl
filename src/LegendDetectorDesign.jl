@@ -17,7 +17,7 @@ using Printf
 import SolidStateDetectors: 
             SSDFloat, AbstractImpurityDensity, Simulation, AbstractCoordinatePoint, update_till_convergence!, mark_bulk_bits!, mark_undep_bits!
 
-import Base: show, print, println, *
+import Base: show, print, println
 
 include("Units.jl")
 include("Geometry/Geometry.jl")

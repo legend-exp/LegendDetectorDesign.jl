@@ -21,6 +21,7 @@ LegendDetectorDesignPlotsExt = ["RecipesBase", "Plots"]
 [compat]
 LegendDataManagement = "0.5.1"
 LinearAlgebra = "1"
+Plots = "<0.0.1, 1"
 Printf = "1"
 PropDicts = "0.2.9"
 RecipesBase = "1"
