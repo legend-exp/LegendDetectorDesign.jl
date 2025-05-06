@@ -86,7 +86,7 @@ function LinExpBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
         T(to_internal_ssd_units(internal_length_unit*det_z0))
         )
 end
-
+#=
 function ParExpBouleImpurityDensity{T}(fitpars::Vector{<:Quantity}, det_z0::Number) where {T}
     @assert length(fitpars) == 5 "Need 6 fit parameters"
     ParExpBouleImpurityDensity(
@@ -102,6 +102,7 @@ function ParExpBouleImpurityDensity{T}(fitpars::Vector{T}, det_z0::T) where {T}
         T(to_internal_ssd_units(internal_length_unit*det_z0))
         )
 end
+=#
 #=
 function SolidStateDetectors.get_impurity_density(
     idm::SegregationImpurityDensity, pt::AbstractCoordinatePoint{T}
