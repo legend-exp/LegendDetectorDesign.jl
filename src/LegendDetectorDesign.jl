@@ -7,6 +7,25 @@ Detector design tools for the LEGEND experiment.
 """
 module LegendDetectorDesign
 
-# include("some_source_file.jl")
+using LinearAlgebra
+using PropDicts
+using Unitful
+using LegendDataManagement
+using SolidStateDetectors
+using Printf
+
+import SolidStateDetectors: 
+            SSDFloat, AbstractImpurityDensity, Simulation, AbstractCoordinatePoint, update_till_convergence!, mark_bulk_bits!, mark_undep_bits!
+
+import Base: show, print, println
+
+include("Units.jl")
+include("Geometry/Geometry.jl")
+include("DetectorDesign.jl")
+include("ImpurityDensities.jl")
+include("ElectricField.jl")
+include("Characterize.jl")
+
+export DetectorDesign, InvertedCoaxDesign, InvertedCoaxGeometry, LinBouleImpurityDensity, ParBouleImpurityDensity, LinExpBouleImpurityDensity, ParExpBouleImpurityDensity, ValidGeometry, InvalidGeometry, characterize!, fit_function, from_internal_units, to_internal_units
 
 end # module

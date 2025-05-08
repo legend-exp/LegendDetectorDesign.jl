@@ -8,4 +8,6 @@ Test.@testset "Package LegendDetectorDesign" begin
     # include("test_some_source_file.jl")
 
     include("test_docs.jl")
+
+    include("test_geometry_validity.jl")
 end # testset
