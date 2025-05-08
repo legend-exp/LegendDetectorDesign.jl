@@ -116,27 +116,27 @@ function design_2_meta(geo::InvertedCoaxGeometry{T,ValidGeometry};
     )::PropDict where {T}
 
     geodict = PropDict(
-        "height_in_mm" => geo.height,
-        "radius_in_mm" => geo.radius,
-        "borehole" => PropDict(
-            "radius_in_mm" => geo.borehole_radius, 
-            "depth_in_mm" => geo.height - geo.borehole_pc_gap),
-        "groove" => PropDict(
-            "depth_in_mm" => geo.groove_depth, 
-            "radius_in_mm" => PropDict("outer" => geo.groove_outer_radius, "inner" => geo.groove_inner_radius)),
-        "pp_contact" => PropDict("radius_in_mm" => geo.pc_radius, "depth_in_mm" => 0),
-        "taper" => PropDict(
-            "top" => PropDict("angle_in_deg" => geo.top_taper_angle, "height_in_mm" => geo.top_taper_height),
-            "bottom" => PropDict("angle_in_deg" => geo.bottom_taper_angle, "height_in_mm" => geo.bottom_taper_height),
-            "borehole" => PropDict("angle_in_deg" => geo.borehole_taper_angle, "height_in_mm" => geo.borehole_taper_height))
+        :height_in_mm => geo.height,
+        :radius_in_mm => geo.radius,
+        :borehole => PropDict(
+            :radius_in_mm => geo.borehole_radius, 
+            :depth_in_mm => geo.height - geo.borehole_pc_gap),
+        :groove => PropDict(
+            :depth_in_mm => geo.groove_depth, 
+            :radius_in_mm => PropDict(:outer => geo.groove_outer_radius, :inner => geo.groove_inner_radius)),
+        :pp_contact => PropDict(:radius_in_mm => geo.pc_radius, :depth_in_mm => 0),
+        :taper => PropDict(
+            :top => PropDict(:angle_in_deg => geo.top_taper_angle, :height_in_mm => geo.top_taper_height),
+            :bottom => PropDict(:angle_in_deg => geo.bottom_taper_angle, :height_in_mm => geo.bottom_taper_height),
+            :borehole => PropDict(:angle_in_deg => geo.borehole_taper_angle, :height_in_mm => geo.borehole_taper_height))
     ) 
     PropDict(
-        "geometry" => geodict,
-        "type" => "icpc",
-        "name" => name,
-        "characterization" => PropDict("manufacturer" => PropDict(
-                                                            "recommended_voltage_in_V" => ismissing(Vop) ? default_operational_V : Vop,
-                                                            "dl_thickness_in_mm" => geo.dead_layer_depth
+        :geometry => geodict,
+        :type => "icpc",
+        :name => name,
+        :characterization => PropDict(:manufacturer => PropDict(
+                                                            :recommended_voltage_in_V => ismissing(Vop) ? default_operational_V : Vop,
+                                                            :dl_thickness_in_mm => geo.dead_layer_depth
                                                         )
                               )
     ) 

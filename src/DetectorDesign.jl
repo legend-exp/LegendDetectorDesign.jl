@@ -111,18 +111,18 @@ end
 
 function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
     meta = design_2_meta(det)
-    sim = Simulation{T}(LegendData, meta, env)
+    sim = Simulation{T}(LegendData, meta, get_default_xtal_meta(det), env)
     sim.detector = SolidStateDetector(sim.detector, imp_model)
     sim
 end
 
 function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
     meta = design_2_meta(det)
-    ssd = SolidStateDetector{T}(LegendData, meta, env)
+    ssd = SolidStateDetector{T}(LegendData, meta, get_default_xtal_meta(det), env)
     SolidStateDetector(ssd, imp_model)
 end
 
 function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
     meta = design_2_meta(det)
-    SolidStateDetector{T}(LegendData, meta, env)
+    SolidStateDetector{T}(LegendData, meta, get_default_xtal_meta(det), env)
 end

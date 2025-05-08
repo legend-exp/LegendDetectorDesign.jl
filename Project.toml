@@ -19,7 +19,7 @@ RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 LegendDetectorDesignPlotsExt = ["RecipesBase", "Plots"]
 
 [compat]
-LegendDataManagement = "0.5.1"
+LegendDataManagement = "0.5.3"
 LinearAlgebra = "1"
 Plots = "<0.0.1, 1"
 Printf = "1"
