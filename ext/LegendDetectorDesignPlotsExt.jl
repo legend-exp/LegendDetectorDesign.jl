@@ -213,8 +213,8 @@ end
     end
 end
 
-@recipe function f(geo::InvertedCoaxGeometry{T, ValidGeometry}; corner_rounding = true, include_measurements = false) where {T}
-    fc = include_measurements ? :white : :grey
+@recipe function f(geo::InvertedCoaxGeometry{T, ValidGeometry}; corner_rounding = true, include_measurements = false, y_offset = 0) where {T}
+    fc = include_measurements ? :white : :lightgray
     seriestype := :shape
     fillcolor --> fc
     aspect_ratio := 1.0
@@ -263,7 +263,7 @@ end
     @series begin
         linestyle := :solid
         linecolor --> :black
-        det_x, det_y
+        det_x, det_y .+ y_offset
     end
     if include_measurements
         @series begin
@@ -277,12 +277,14 @@ end
                 LinearMeasurement{T}((-geo.borehole_radius, geo.borehole_pc_gap), (geo.borehole_radius,  geo.borehole_pc_gap),-9,"Ø"),
                 LinearMeasurement{T}((-borehole_x, geo.borehole_pc_gap), (-borehole_x,  H),10,"",(10+borehole_x-geo.borehole_radius, 0), (2,0)),
                 LinearMeasurement{T}((-geo.groove_outer_radius, 0), (-geo.groove_outer_radius, geo.groove_depth),8,"", (0,8), (0,1)),
+                LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,"Ø")
             ]
+            idx = findall(getindex.(get_annotation_info.(vm), 3) .> 0)
+            vm = vm[idx]
             if geo.borehole_taper_angle > 0 && geo.borehole_taper_height > 0
                 if geo.borehole_taper_height != H - geo.borehole_pc_gap
                     push!(vm,LinearMeasurement{T}((borehole_x, H - geo.borehole_taper_height), (borehole_x, H), -10,"",(-10-borehole_x+geo.borehole_radius, 0), (2,0)))
                 end
-                push!(vm, LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,"Ø"))
                 push!(vm, AngularMeasurement{T}((borehole_x, H), (geo.borehole_radius, H - geo.borehole_taper_height), (geo.borehole_radius, H), 25, "", (26,0), (1,0)))
             end
             vm
@@ -294,8 +296,8 @@ end
                 arrows_and_guides := :start
                 o = 10
                 [
-                    LinearMeasurement{T}((R, H),(R+o, H + o), 0, "R$(@sprintf("%.0f", geo.top_taper_height))"),
-                    LinearMeasurement{T}((R, 0), (R+o, -o), 0, "R$(@sprintf("%.0f", geo.bottom_taper_height))"),
+                    #LinearMeasurement{T}((R, H),(R+o, H + o), 0, "R$(@sprintf("%.0f", geo.top_taper_height))"),
+                    #LinearMeasurement{T}((R, 0), (R+o, -o), 0, "R$(@sprintf("%.0f", geo.bottom_taper_height))"),
                 ]
             end
         else
@@ -316,61 +318,79 @@ end
     end
 end
 
-@recipe function f(det::DetectorDesign{T}; crystalname = det.name[4:end-1], technical_drawing = false) where {T}
-    size --> (1000,500)
+@recipe function f(det::DetectorDesign{T}; crystalprefix = "", order = det.name[2:3], technical_drawing = false, spot_radius = 4, spot_offset = 25) where {T}
     aspect_ratio := 1.0
-    fmt --> :png
-    dpi --> 300
+    corner_rounding --> true
+    if technical_drawing 
+        ticks := false
+        guide := ""
+        axis := false
+        label --> nothing
+        bottom_margin --> 3*Plots.mm
+        top_margin --> 3*Plots.mm
+        left_margin --> 3*Plots.mm
+        right_margin --> 3*Plots.mm
+    end
     @series begin
-        subplot := 1
-        corner_rounding --> true
         if technical_drawing 
+            size --> (500,1200)
             include_measurements --> true
-            measurementfontsize --> 7
-            xlims := (-220, 50)
-            ylims := (-30, 135)
+            measurementfontsize --> 8
+            xlims := (-90, 90)
+            ylims := (-150, 155)
         end
         det.geometry
     end
     if technical_drawing 
+        geo = det.geometry
+        x, y = 0, -84
+        spot_guide_offset = geo.groove_outer_radius+5
+        θ = range(0,2π,100)
+        s, c = sin.(θ), cos.(θ)
         @series begin
-            xlims := (-220, 50)
-            ylims := (-30, 135)
-            subplot := 1
-            ticks := false
-            guide := ""
-            axis := false
+            linestyle := :solid
+            linecolor --> :black
+            [
+                geo.groove_outer_radius*c .+ x,
+                geo.groove_inner_radius*c.+ x,
+                geo.radius*c .+ x
+            ], 
+            [   geo.groove_outer_radius*s .+ y,
+                geo.groove_inner_radius*s .+ y,
+                geo.radius*s .+ y
+            ]
+        end
+        @series begin
+            linestyle := :solid
+            seriestype := :shape
+            linecolor --> :black
+            fillcolor --> :lightgrey
+            [
+                spot_radius*c .+ x,
+                spot_radius*c .+ spot_offset.+ x
+            ], 
+            [   
+                spot_radius*s .+ y,
+                spot_radius*s .+ y
+            ]
+        end
+        @series begin
+            [
+                LinearMeasurement{T}((x - spot_radius,y), (x + spot_radius, y), spot_guide_offset,"Ø"),
+                LinearMeasurement{T}((x - spot_radius + spot_offset,y), (x + spot_radius + spot_offset, y), spot_guide_offset,"Ø"),
+                LinearMeasurement{T}((x,y), (x + spot_offset, y), -spot_guide_offset,"")
+            ]
+        end
+        @series begin
             seriestype := :scatter
             markersize := 0
             markercolor := :white
-            label --> nothing
             series_annotations := [
-                Plots.text("Crystal " * crystalname, 10, :black, :left),
-                Plots.text("Detector name: " * det.name, 6, :black, :left),
-                Plots.text("$(Int(floor(det.mass))) g", 6, :black, :left)
+                Plots.text("Al spots", 8, :grey, :center),
+                Plots.text("Crystal ID: $(crystalprefix*det.name[4:end-1])", 12, :black, :left),
+                Plots.text("Diode: $(det.name)\nOrder: $order", 8, :gray, :left)
             ]
-            [-180, -180, -180], [-18, -23.5, -28]
-        end
-
-        detector = SolidStateDetector{T}(det)
-        
-        @series begin
-            subplot := 2
-            inset := (1, Plots.bbox(0.0, 0.1, 0.5, 0.9, :bottom, :left))
-            ticks := false
-            guide := ""
-            axis := false
-            label --> nothing
-            xlims := (-0.05,0.05)
-            ylims := (-0.05,0.05)
-            zlims := (-0.005,0.11)
-            camera --> (20,30)
-            seriestype := :samplesurface
-            markeralpha --> 0.1
-            n_samples --> 80 
-            markersize --> 0.5
-            markeralpha --> 0.5
-            detector.semiconductor
+            [x + spot_offset/2, -13, -13], [y - spot_guide_offset - 3, -148, -154]
         end
     end
 end
