@@ -213,7 +213,7 @@ end
     end
 end
 
-@recipe function f(geo::InvertedCoaxGeometry{T, ValidGeometry}; corner_rounding = true, include_measurements = false, y_offset = 0) where {T}
+@recipe function f(geo::InvertedCoaxGeometry{T, ValidGeometry}; corner_rounding = :both, include_measurements = false, y_offset = 0) where {T}
     fc = include_measurements ? :white : :lightgray
     seriestype := :shape
     fillcolor --> fc
@@ -231,7 +231,7 @@ end
     bottom_taper_x = [R-geo.bottom_taper_height*tand(geo.bottom_taper_angle),R]
     bottom_taper_y = [0,geo.bottom_taper_height]
     
-    if corner_rounding && geo.bottom_taper_angle == 45
+    if corner_rounding in [:both, :bottom] && geo.bottom_taper_angle == 45
         x = range(0, geo.bottom_taper_height, 25)
         bottom_taper_x = x .+ bottom_taper_x[1]
         bottom_taper_y = bottom_taper_y[2] .- sqrt.(bottom_taper_y[2]^2 .- x.^2)
@@ -245,7 +245,7 @@ end
     top_taper_x = [R,R-geo.top_taper_height*tand(geo.top_taper_angle)]
     top_taper_y = [H-geo.top_taper_height, H]
     
-    if corner_rounding && geo.top_taper_angle == 45
+    if corner_rounding in [:both, :top] && geo.top_taper_angle == 45
         x = range(geo.top_taper_height, 0, 25)
         top_taper_x = x .+ top_taper_x[2]
         top_taper_y = top_taper_y[1] .+ sqrt.(geo.top_taper_height^2 .- x.^2)
@@ -260,11 +260,13 @@ end
     
     det_y = vcat(detbot_y, dettop_y, detbot_y[1:1])
     det_x = vcat(detbot_x, dettop_x, detbot_x[1:1])
+    
     @series begin
         linestyle := :solid
         linecolor --> :black
         det_x, det_y .+ y_offset
     end
+    
     if include_measurements
         @series begin
             annotate_measurement --> true
@@ -277,32 +279,50 @@ end
                 LinearMeasurement{T}((-geo.borehole_radius, geo.borehole_pc_gap), (geo.borehole_radius,  geo.borehole_pc_gap),-9,"Ø"),
                 LinearMeasurement{T}((-borehole_x, geo.borehole_pc_gap), (-borehole_x,  H),10,"",(10+borehole_x-geo.borehole_radius, 0), (2,0)),
                 LinearMeasurement{T}((-geo.groove_outer_radius, 0), (-geo.groove_outer_radius, geo.groove_depth),8,"", (0,8), (0,1)),
-                LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,"Ø")
             ]
             idx = findall(getindex.(get_annotation_info.(vm), 3) .> 0)
             vm = vm[idx]
             if geo.borehole_taper_angle > 0 && geo.borehole_taper_height > 0
+                push!(vm, LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,"Ø"))
                 if geo.borehole_taper_height != H - geo.borehole_pc_gap
                     push!(vm,LinearMeasurement{T}((borehole_x, H - geo.borehole_taper_height), (borehole_x, H), -10,"",(-10-borehole_x+geo.borehole_radius, 0), (2,0)))
                 end
                 push!(vm, AngularMeasurement{T}((borehole_x, H), (geo.borehole_radius, H - geo.borehole_taper_height), (geo.borehole_radius, H), 25, "", (26,0), (1,0)))
             end
+            if geo.top_taper_angle > 0 && geo.top_taper_height > 0 && corner_rounding != :top && corner_rounding != :both
+                taper_x = R-geo.top_taper_height*tand(geo.top_taper_angle)
+                push!(vm,LinearMeasurement{T}((taper_x, H - geo.top_taper_height), (taper_x, H), 4,"",(4+R-taper_x, 0), (2,0)))
+                push!(vm,LinearMeasurement{T}((taper_x, H), (R, H), 8,""))
+                push!(vm, AngularMeasurement{T}((R, H), (R, H - geo.top_taper_height), (taper_x, H), 20, "", (0,20), (0,1)))
+            end
+            if geo.bottom_taper_angle > 0 && geo.bottom_taper_height > 0 && corner_rounding != :bottom && corner_rounding != :both
+                taper_x = R-geo.bottom_taper_height*tand(geo.bottom_taper_angle)
+                push!(vm,LinearMeasurement{T}((taper_x, 0), (taper_x, geo.bottom_taper_height), 4,"",(0,4+R-taper_x), (2,0)))
+                push!(vm,LinearMeasurement{T}((taper_x, 0), (R, 0), -8,""))
+                push!(vm, AngularMeasurement{T}((taper_x, 0), (R, geo.bottom_taper_height), (R, 0), 20, "", (20,0), (1,0)))
+            end
             vm
         end
-        if corner_rounding
+        
+        if corner_rounding in [:both, :top, :bottom]
+            o = 10
+            top_cr = LinearMeasurement{T}((R, H),(R+o, H + o), 0, "R$(@sprintf("%.0f", geo.top_taper_height))")
+            bottom_cr = LinearMeasurement{T}((R, 0), (R+o, -o), 0, "R$(@sprintf("%.0f", geo.bottom_taper_height))")
+            vcm  = if corner_rounding == :both
+                [top_cr, bottom_cr]
+            elseif corner_rounding == :top
+                [top_cr]
+            else
+                [bottom_cr]
+            end
             @series begin
                 linestyle := :solid
                 annotate_measurement := false
                 arrows_and_guides := :start
-                o = 10
-                [
-                    #LinearMeasurement{T}((R, H),(R+o, H + o), 0, "R$(@sprintf("%.0f", geo.top_taper_height))"),
-                    #LinearMeasurement{T}((R, 0), (R+o, -o), 0, "R$(@sprintf("%.0f", geo.bottom_taper_height))"),
-                ]
+                vcm
             end
-        else
-            ##Outer taper measurements
         end
+        
         @series begin
             linestyle --> :solid
             linecolor --> :gray
@@ -318,9 +338,9 @@ end
     end
 end
 
-@recipe function f(det::DetectorDesign{T}; crystalprefix = "", order = det.name[2:3], technical_drawing = false, spot_radius = 4, spot_offset = 25) where {T}
+@recipe function f(det::DetectorDesign{T}; crystal_prefix = "", seed_label = "SEED", order = det.name[2:3], technical_drawing = false, spot_radius = 4, spot_offset = 25) where {T}
     aspect_ratio := 1.0
-    corner_rounding --> true
+    corner_rounding --> false
     if technical_drawing 
         ticks := false
         guide := ""
@@ -335,7 +355,7 @@ end
         if technical_drawing 
             size --> (500,1200)
             include_measurements --> true
-            measurementfontsize --> 8
+            #measurementfontsize --> 8
             xlims := (-90, 90)
             ylims := (-150, 155)
         end
@@ -386,11 +406,12 @@ end
             markersize := 0
             markercolor := :white
             series_annotations := [
+                Plots.text(seed_label, 12, :black, :center),
                 Plots.text("Al spots", 8, :grey, :center),
-                Plots.text("Crystal ID: $(crystalprefix*det.name[4:end-1])", 12, :black, :left),
+                Plots.text("Crystal ID: $(crystal_prefix*det.name[4:end-1])", 12, :black, :left),
                 Plots.text("Diode: $(det.name)\nOrder: $order", 8, :gray, :left)
             ]
-            [x + spot_offset/2, -13, -13], [y - spot_guide_offset - 3, -148, -154]
+            [0, x + spot_offset/2, -13, -13], [geo.height+16+10, y - spot_guide_offset - 3, -148, -154]
         end
     end
 end
