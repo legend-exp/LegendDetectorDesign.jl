@@ -214,7 +214,7 @@ end
     end
 end
 
-function det_outline(geo::InvertedCoaxGeometry{T}; corner_rounding = :both) where {T}
+function det_outline(geo::InvertedCoaxGeometry{T}; corner_rounding = :both, contact = :none) where {T}
     H = geo.height
     R = geo.radius
 
@@ -227,8 +227,13 @@ function det_outline(geo::InvertedCoaxGeometry{T}; corner_rounding = :both) wher
         bottom_taper_y = bottom_taper_y[2] .- sqrt.(bottom_taper_y[2]^2 .- x.^2)
     end
     
-    detslicebot_x = [0,geo.groove_inner_radius,geo.groove_inner_radius,geo.groove_outer_radius,geo.groove_outer_radius,bottom_taper_x...]
-    detslicebot_y = [0,0,geo.groove_depth,geo.groove_depth,0,bottom_taper_y...]
+    detslicebot_x, detslicebot_y = if contact == :n
+        [geo.groove_outer_radius,bottom_taper_x...],
+        [0,bottom_taper_y...]
+    else
+        [0,geo.groove_inner_radius,geo.groove_inner_radius,geo.groove_outer_radius,geo.groove_outer_radius,bottom_taper_x...],
+        [0,0,geo.groove_depth,geo.groove_depth,0,bottom_taper_y...]
+    end
     detbot_y = vcat(reverse(detslicebot_y), detslicebot_y)
     detbot_x = vcat(-reverse(detslicebot_x), detslicebot_x)
     
@@ -247,11 +252,16 @@ function det_outline(geo::InvertedCoaxGeometry{T}; corner_rounding = :both) wher
     
     dettop_y = vcat(detslicetop_y, reverse(detslicetop_y))
     dettop_x = vcat(detslicetop_x, -reverse(detslicetop_x))
-    
-    vcat(detbot_x, dettop_x, detbot_x[1:1]), vcat(detbot_y, dettop_y, detbot_y[1:1])
+    if contact == :n
+        vcat(detslicebot_x, dettop_x, -reverse(detslicebot_x)), vcat(detslicebot_y, dettop_y, reverse(detslicebot_y))
+    elseif contact == :p
+        [-geo.groove_inner_radius, geo.groove_inner_radius], [0,0]
+    else
+        vcat(detbot_x, dettop_x, detbot_x[1:1]), vcat(detbot_y, dettop_y, detbot_y[1:1])
+    end
 end
 
-@recipe function f(geo::InvertedCoaxGeometry{T, ValidGeometry}; corner_rounding = :both, include_measurements = false, y_offset = 0) where {T}
+@recipe function f(geo::InvertedCoaxGeometry{T, ValidGeometry}; corner_rounding = :both, include_measurements = false, label_measurements = false, color_contacts = [], y_offset = 0) where {T}
     fc = include_measurements ? :white : :lightgray
     seriestype := :shape
     fillcolor --> fc
@@ -274,40 +284,62 @@ end
         linecolor --> :black
         det_x, det_y .+ y_offset
     end
-    
+
+    if length(color_contacts) == 2
+        @series begin
+            linestyle := :solid
+            seriestype := :path
+            linecolor := color_contacts[1] 
+            det_x_n, det_y_n = det_outline(geo; corner_rounding=corner_rounding, contact=:n)
+            det_x_n, det_y_n .+ y_offset
+        end
+        @series begin
+            linestyle := :solid
+            seriestype := :path
+            linecolor := color_contacts[2]
+            det_x_p, det_y_p = det_outline(geo; corner_rounding=corner_rounding, contact=:p)
+            det_x_p, det_y_p .+ y_offset
+        end
+    end
+
     if include_measurements
         @series begin
             annotate_measurement --> true
             linestyle := :solid
+            ann = if label_measurements 
+                ["H","D","ID","OD","BD","BH","G","BOD","TH","τ","","","","","","",""]
+            else 
+                ["", "Ø", "Ø", "Ø", "Ø", "", "", "Ø", "", "", "", "", "", "", "", ""] 
+            end
             vm = AbstractMeasurement[
-                LinearMeasurement{T}((-R, 0), (-R, H),16,""),
-                LinearMeasurement{T}((-R, H), (R, H),16,"Ø"),
-                LinearMeasurement{T}((-geo.groove_inner_radius, 0), (geo.groove_inner_radius, 0),-10,"Ø"),
-                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (geo.groove_outer_radius, 0),-20,"Ø"),
-                LinearMeasurement{T}((-geo.borehole_radius, geo.borehole_pc_gap), (geo.borehole_radius,  geo.borehole_pc_gap),-9,"Ø"),
-                LinearMeasurement{T}((-borehole_x, geo.borehole_pc_gap), (-borehole_x,  H),10,"",(10+borehole_x-geo.borehole_radius, 0), (2,0)),
-                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (-geo.groove_outer_radius, geo.groove_depth),8,"", (0,8), (0,1)),
+                LinearMeasurement{T}((-R, 0), (-R, H),16,ann[1]),
+                LinearMeasurement{T}((-R, H), (R, H),16,ann[2]),
+                LinearMeasurement{T}((-geo.groove_inner_radius, 0), (geo.groove_inner_radius, 0),-10,ann[3]),
+                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (geo.groove_outer_radius, 0),-20,ann[4]),
+                LinearMeasurement{T}((-geo.borehole_radius, geo.borehole_pc_gap), (geo.borehole_radius,  geo.borehole_pc_gap),-9,ann[5]),
+                LinearMeasurement{T}((-borehole_x, geo.borehole_pc_gap), (-borehole_x,  H),10,ann[6],(10+borehole_x-geo.borehole_radius, 0), (2,0)),
+                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (-geo.groove_outer_radius, geo.groove_depth),8,ann[7], (0,8), (0,1)),
             ]
             idx = findall(getindex.(get_annotation_info.(vm), 3) .> 0)
             vm = vm[idx]
             if geo.borehole_taper_angle > 0 && geo.borehole_taper_height > 0
-                push!(vm, LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,"Ø"))
+                push!(vm, LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,ann[8]))
                 if geo.borehole_taper_height != H - geo.borehole_pc_gap
-                    push!(vm,LinearMeasurement{T}((borehole_x, H - geo.borehole_taper_height), (borehole_x, H), -10,"",(-10-borehole_x+geo.borehole_radius, 0), (2,0)))
+                    push!(vm,LinearMeasurement{T}((borehole_x, H - geo.borehole_taper_height), (borehole_x, H), -10,ann[9],(-10-borehole_x+geo.borehole_radius, 0), (2,0)))
                 end
-                push!(vm, AngularMeasurement{T}((borehole_x, H), (geo.borehole_radius, H - geo.borehole_taper_height), (geo.borehole_radius, H), 25, "", (26,0), (1,0)))
+                push!(vm, AngularMeasurement{T}((borehole_x, H), (geo.borehole_radius, H - geo.borehole_taper_height), (geo.borehole_radius, H), 25, ann[10], (26,0), (1,0)))
             end
             if geo.top_taper_angle > 0 && geo.top_taper_height > 0 && corner_rounding != :top && corner_rounding != :both
                 taper_x = R-geo.top_taper_height*tand(geo.top_taper_angle)
-                push!(vm,LinearMeasurement{T}((taper_x, H - geo.top_taper_height), (taper_x, H), 4,"",(4+R-taper_x, 0), (2,0)))
-                push!(vm,LinearMeasurement{T}((taper_x, H), (R, H), 8,""))
-                push!(vm, AngularMeasurement{T}((R, H), (R, H - geo.top_taper_height), (taper_x, H), 20, "", (0,20), (0,1)))
+                push!(vm,LinearMeasurement{T}((taper_x, H - geo.top_taper_height), (taper_x, H), 4,ann[11],(4+R-taper_x, 0), (2,0)))
+                push!(vm,LinearMeasurement{T}((taper_x, H), (R, H), 8,ann[12]))
+                push!(vm, AngularMeasurement{T}((R, H), (R, H - geo.top_taper_height), (taper_x, H), 20, ann[13], (0,20), (0,1)))
             end
             if geo.bottom_taper_angle > 0 && geo.bottom_taper_height > 0 && corner_rounding != :bottom && corner_rounding != :both
                 taper_x = R-geo.bottom_taper_height*tand(geo.bottom_taper_angle)
-                push!(vm,LinearMeasurement{T}((taper_x, 0), (taper_x, geo.bottom_taper_height), 4,"",(0,4+R-taper_x), (2,0)))
-                push!(vm,LinearMeasurement{T}((taper_x, 0), (R, 0), -8,""))
-                push!(vm, AngularMeasurement{T}((taper_x, 0), (R, geo.bottom_taper_height), (R, 0), 20, "", (20,0), (1,0)))
+                push!(vm,LinearMeasurement{T}((taper_x, 0), (taper_x, geo.bottom_taper_height), 4,ann[14],(0,4+R-taper_x), (2,0)))
+                push!(vm,LinearMeasurement{T}((taper_x, 0), (R, 0), -8,ann[15]))
+                push!(vm, AngularMeasurement{T}((taper_x, 0), (R, geo.bottom_taper_height), (R, 0), 20, ann[16], (20,0), (1,0)))
             end
             vm
         end
@@ -431,16 +463,18 @@ end
     @series begin
         boule.geometry
     end
-    for z_hall in boule.z_hall
-        @series begin
-            seriestype := :path
-            seriestype := :shape
-            fillcolor --> :darkgray
-            label --> nothing
+    if !ismissing(boule.z_hall)
+        for z_hall in boule.z_hall
+            @series begin
+                seriestype := :path
+                seriestype := :shape
+                fillcolor --> :darkgray
+                label --> nothing
 
-            z = range(z_hall - slice_thickness, z_hall + slice_thickness, Int(ceil(slice_thickness*2)))
-            r = boule.geometry.spline(z)
-            vcat(z,reverse(z)), vcat(r,-reverse(r))
+                z = range(z_hall - slice_thickness, z_hall + slice_thickness, Int(ceil(slice_thickness*2)))
+                r = boule.geometry.spline(z)
+                vcat(z,reverse(z)), vcat(r,-reverse(r))
+            end
         end
     end
 end
@@ -476,7 +510,8 @@ end
         left_margin --> 2*Plots.mm
         right_margin := 2*Plots.mm
     end
-    zcuts = sort(vcat(det.offset, boule.geometry.z[1], boule.geometry.z[end], boule.z_hall .+ slice_thickness, boule.z_hall .- slice_thickness))
+    hall_cuts = ismissing(boule.z_hall) ? [] : [boule.z_hall .+ slice_thickness, boule.z_hall .- slice_thickness]
+    zcuts = sort(vcat(det.offset, boule.geometry.z[1], boule.geometry.z[end], hall_cuts...))
     idx = findfirst(zcuts .== det.offset)
     zp = (zcuts[idx-1], zcuts[idx+1])
     @series begin

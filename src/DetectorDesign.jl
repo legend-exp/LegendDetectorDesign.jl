@@ -109,6 +109,8 @@ function meta_2_design(::Type{T}, meta::PropDict) where {T}
     end
 end
 
+# meta_2_boule
+
 get_unitful_property(det::DetectorDesign, prop::Symbol) = get_unitful_property(det, Val(prop))
 
 get_unitful_property(det::DetectorDesign, ::Val{:offset}) = det.offset * internal_length_unit
