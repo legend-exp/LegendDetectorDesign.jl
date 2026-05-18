@@ -115,20 +115,20 @@ get_unitful_property(det::DetectorDesign, prop::Symbol) = get_unitful_property(d
 
 get_unitful_property(det::DetectorDesign, ::Val{:offset}) = det.offset * internal_length_unit
 
-function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
+function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
     meta = design_2_meta(det)
-    sim = Simulation{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false)
+    sim = Simulation{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false; kwargs...)
     sim.detector = SolidStateDetector(sim.detector, imp_model)
     sim
 end
 
-function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
+function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
     meta = design_2_meta(det)
-    ssd = SolidStateDetector{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false)
+    ssd = SolidStateDetector{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false; kwargs...)
     SolidStateDetector(ssd, imp_model)
 end
 
-function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, env::HPGeEnvironment = HPGeEnvironment()) where {T<:AbstractFloat}
+function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
     meta = design_2_meta(det)
-    SolidStateDetector{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false)
+    SolidStateDetector{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false; kwargs...)
 end
