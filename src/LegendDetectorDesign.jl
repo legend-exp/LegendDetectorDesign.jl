@@ -19,7 +19,7 @@ using YAML
 using OrderedCollections
 
 import SolidStateDetectors: 
-        SSDFloat, AbstractImpurityDensity, Simulation, AbstractCoordinatePoint, update_till_convergence!, mark_bulk_bits!, mark_undep_bits!
+        SSDFloat, AbstractImpurityDensity, Simulation, AbstractCoordinatePoint, update_till_convergence!, mark_bulk_bits!, mark_undep_bits!, _adapt_weighting_potential_to_electric_potential_grid!
 
 import Base: show, print, println
 

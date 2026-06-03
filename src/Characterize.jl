@@ -52,21 +52,24 @@ function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensit
     if is_depleted(sim.point_types)
         if verbose @info "Detector depletes under $(sim.detector.contacts[2].potential) V" end
         if length(refinement_limits) > 2
-            if verbose @info "Refining Grid ...." end
+            if verbose @info "Refining Grid ..." end
             calculate_electric_potential!(sim, 
                 refinement_limits = refinement_limits[3:end], 
                 depletion_handling = true, 
                 verbose = verbose, 
                 initialize = false)
+            if verbose @info "Calculating weighting potential for depletion voltage estimation and projection to Vdep + 500V..." end
+            _adapt_weighting_potential_to_electric_potential_grid!(sim, 2)
         end
         if length(refinement_limits) <= 2 || is_depleted(sim.point_types)
             Vdep = T(to_internal_units(estimate_depletion_voltage(sim, check_for_depletion = false, verbose = verbose)))
             det.Vdep = Vdep
-            if verbose @info "Simulating at Vdep + 500V...\n" end
+            if verbose @info "Using superposition principle to calculate at Vdep + 500V...\n" end
             Vop = Vdep + 500
             det.Vop = Vop
+            ϕV = sim.weighting_potentials[2].data
+            sim.electric_potential.data .+= (Vop - sim.detector.contacts[2].potential) .* ϕV
             sim.detector = SolidStateDetector(sim.detector, contact_id = 2, contact_potential =  Vop)
-            calculate_electric_potential!(sim, refinement_limits = refinement_limits, depletion_handling = true, verbose = verbose)
             populate_design!(det, sim, T(Vop), verbose = verbose)
         end
     end
@@ -104,6 +107,7 @@ function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensit
     sim
 end
 
+# Method where a reference simulation is provided, so that the electric potential can be updated till convergence instead of recalculating from scratch at each iteration. The idea is that the det is just a small permulation of the reference simulation, so the electric potential should be close to the reference simulation at each iteration, and thus should converge faster.
 function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, reference_simulation::Simulation{T}; 
     Vop::Real = reference_simulation.detector.contacts[2].potential,
     verbose::Bool = false
