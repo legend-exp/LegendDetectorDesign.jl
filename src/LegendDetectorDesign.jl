@@ -31,6 +31,6 @@ include("ImpurityDensities.jl")
 include("ElectricField.jl")
 include("Characterize.jl")
 
-export DetectorDesign, InvertedCoaxDesign, InvertedCoaxGeometry, BouleGeometry, CrystallineBoule, LinBouleImpurityDensity, ParBouleImpurityDensity, LinExpBouleImpurityDensity, ParExpBouleImpurityDensity, ValidGeometry, InvalidGeometry, characterize!, fit_function, from_internal_units, to_internal_units, get_unitful_property, get_impurity_density, write_metadata
+export DetectorDesign, InvertedCoaxDesign, InvertedCoaxGeometry, BouleGeometry, CrystallineBoule, LinBouleImpurityDensity, ParBouleImpurityDensity, LinExpBouleImpurityDensity, ParExpBouleImpurityDensity, ValidGeometry, InvalidGeometry, characterize!, fit_function, from_internal_units, to_internal_units, get_unitful_property, get_impurity_density, boule_to_meta
 
 end # module
