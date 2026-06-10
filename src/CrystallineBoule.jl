@@ -44,6 +44,9 @@ mutable struct CrystallineBoule{T} <: AbstractCrystallineBoule{T}
     impurity_hall::Union{Vector{T}, Missing}
     z_hall::Union{Vector{T}, Missing}
     impurity_model_parameters::Union{Vector{T}, Missing}
+
+    CrystallineBoule{T}(name, order, impurity_model, geometry, impurity_resistivity, z_resistivity, impurity_hall, z_hall, impurity_model_parameters) where {T} =
+        new{T}(name, order, impurity_model, geometry, impurity_resistivity, z_resistivity, impurity_hall, z_hall, impurity_model_parameters)
 end
 
 """
