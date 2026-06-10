@@ -378,7 +378,7 @@ end
     end
 end
 
-@recipe function f(det::DetectorDesign{T}; crystal_prefix = "", seed_label = "SEED", order = det.name[2:3], technical_drawing = false, spot_radius = 2, spot_offset = det.geometry.groove_outer_radius + spot_radius + 2, spot_label = "") where {T}
+@recipe function f(det::DetectorDesign{T}; crystal_name = "", seed_label = "SEED", order = "", technical_drawing = false, spot_radius = 2, spot_offset = det.geometry.groove_outer_radius + spot_radius + 2, spot_label = "") where {T}
     aspect_ratio := 1.0
     corner_rounding --> :both
     if technical_drawing 
@@ -447,7 +447,7 @@ end
             series_annotations := [
                 Plots.text(seed_label, 12, :black, :center),
                 Plots.text(spot_label, 8, :grey, :center),
-                Plots.text("Crystal ID: $(crystal_prefix*det.name[4:end-1])", 12, :black, :left),
+                Plots.text("Crystal ID: $(crystal_name)", 12, :black, :left),
                 Plots.text("Diode: $(det.name)\nOrder: $order", 8, :gray, :left)
             ]
             [0, x + spot_offset/2, 0, 0], [geo.height+16+10, y - spot_guide_offset - 3, -149, -156]
