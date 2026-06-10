@@ -46,15 +46,15 @@ of an impurity-density fit. Start with the measured Hall samples and a
 piecewise radius profile:
 
 ```@example tutorial
-z_hall        = [ 0, 25, 55, 85, 110] * u"mm"
-impurity_hall = [0.40, 0.55, 0.70, 0.85, 1.05] * u"1e10/cm^3"
+z_hall        = [ 0, 5, 10, 105, 115] * u"mm"
+impurity_hall = [0.40, 0.55, 0.70, 1.35, 2.1] * u"1e10/cm^3"
 
 # axially-symmetric boule outline; measured radius at three z stations
 z_radius = [0, 60, 120] * u"mm"
 r_radius = [42, 42, 41] * u"mm"
 
 boule = CrystallineBoule(T;
-    name           = "EXBoule",
+    name           = "ExampleBoule",
     order          = "01",
     impurity_model = :linear_exponential_boule,
     impurity_hall  = impurity_hall,
@@ -174,7 +174,7 @@ manufacturer — the `DetectorDesign` recipe adds the p⁺ spot pattern, title,
 and order labels:
 
 ```@example tutorial
-plot(det, technical_drawing = true, crystal_prefix = "EX", corner_rounding = :both)
+plot(det, technical_drawing = true, crystal_name = boule.name, order = boule.order, corner_rounding = :both)
 ```
 
 ## 6. Plot the detector in the boule
@@ -205,7 +205,7 @@ finer field maps at the cost of build time; the tutorial uses a moderate
 two-pass schedule:
 
 ```@example tutorial
-sim = characterize!(det, boule, refinement_limits = [0.2, 0.1, 0.05])
+sim = characterize!(det, boule, refinement_limits = [0.2, 0.1, 0.05, 0.02])
 det
 ```
 
