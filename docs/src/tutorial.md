@@ -273,7 +273,7 @@ exactly that:
 
 ```@example tutorial
 geo2 = InvertedCoaxGeometry(det.geometry;
-    pc_radius        = T(8.5)
+    height        = T(81),
 )
 det2 = InvertedCoaxDesign(det, geo2)
 ```
