@@ -1,5 +1,15 @@
 # This file is a part of LegendDetectorDesign.jl, licensed under the MIT License (MIT).
 
+"""
+    is_local_bulk_Efield_minima(sim::Simulation, x₀::CartesianIndex{3}) -> Bool
+
+Check whether the grid point `x₀` is a local minimum of `‖E‖` within the
+detector bulk: all 6 nearest neighbours (face-adjacent in `r/φ/z`) must have
+field magnitude ≥ the value at `x₀` and be marked as bulk
+(`SolidStateDetectors.bulk_bit`).
+
+Requires `sim.point_types` and `sim.electric_field` to have been computed.
+"""
 function is_local_bulk_Efield_minima(sim::Simulation, x₀::CartesianIndex{3}) #move to SSD?
     @assert !ismissing(sim.point_types) "Please calculate the electric potential first using `calculate_electric_potential!(sim)`"
     @assert !ismissing(sim.electric_field) "Please calculate the electric potential first using `calculate_electric_field!(sim)`"
@@ -20,6 +30,21 @@ function is_local_bulk_Efield_minima(sim::Simulation, x₀::CartesianIndex{3}) #
     is_loc_min
 end
 
+"""
+    find_minimum_Efield_in_bulk(sim::Simulation; require_local_min = false, verbose = false)
+        -> (Emin::Quantity, pos::Tuple)
+
+Locate the minimum bulk electric field strength in `sim`.
+
+If `require_local_min = false`, returns the *global* minimum of `‖E‖` over all
+bulk-flagged points. If `true`, returns the smallest bulk point that also
+satisfies [`is_local_bulk_Efield_minima`](@ref) (i.e., a true local minimum,
+not just a low value on a monotonic ramp toward a contact); falls back to the
+global minimum if no local minimum exists.
+
+Returns the magnitude in `V/cm` ([`internal_efield_unit`](@ref)) and its
+spatial position in the simulation's internal coordinate units.
+"""
 function find_minimum_Efield_in_bulk(sim::Simulation; require_local_min = false, verbose = false) #move to SSD?
     @assert !ismissing(sim.point_types) "Please calculate the electric potential first using `calculate_electric_potential!(sim)`"
     @assert !ismissing(sim.electric_field) "Please calculate the electric potential first using `calculate_electric_field!(sim)`"
