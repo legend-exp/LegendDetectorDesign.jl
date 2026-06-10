@@ -38,21 +38,17 @@ mutable struct CrystallineBoule{T} <: AbstractCrystallineBoule{T}
     name::AbstractString
     order::AbstractString
     impurity_model::Function
-    geometry::Union{BouleGeometry{<:Any,T}, Missing}
+    geometry::BouleGeometry{<:Any,T}
     impurity_resistivity::Union{Vector{T}, Missing}
     z_resistivity::Union{Vector{T}, Missing}
     impurity_hall::Union{Vector{T}, Missing}
     z_hall::Union{Vector{T}, Missing}
     impurity_model_parameters::Union{Vector{T}, Missing}
-
-    CrystallineBoule{T}(name, order, impurity_model, geometry, impurity_resistivity, z_resistivity, impurity_hall, z_hall, impurity_model_parameters) where {T} =
-        new{T}(name, order, impurity_model, geometry, impurity_resistivity, z_resistivity, impurity_hall, z_hall, impurity_model_parameters)
 end
 
 """
     CrystallineBoule(::Type{T};
-                     name, order, impurity_model,
-                     geometry = missing,
+                     name, order, impurity_model, geometry,
                      impurity_resistivity = missing, z_resistivity = missing,
                      impurity_hall = missing, z_hall = missing,
                      impurity_model_parameters = missing) -> CrystallineBoule{T}
@@ -61,16 +57,16 @@ Construct a [`CrystallineBoule`](@ref) with element type `T`.
 
 `impurity_model` is a `Symbol` naming a registered curve (see
 [`fit_function`](@ref)); the corresponding `impurity_model_parameters` must be
-ordered to match `fit_parameter_names` for that model. All vector
-inputs may be unitful — they are converted to internal units on construction
-and stored as bare numbers. Any of the measurement vectors may be `missing`
-when the data is not available.
+ordered to match `fit_parameter_names` for that model. `geometry` is required.
+All vector inputs may be unitful — they are converted to internal units on
+construction and stored as bare numbers. Any of the measurement vectors may
+be `missing` when the data is not available.
 """
 function CrystallineBoule(::Type{T};
         name::AbstractString,
         order::AbstractString,
         impurity_model::Symbol,
-        geometry::Union{BouleGeometry{<:Any, T}, Missing} = missing,
+        geometry::BouleGeometry{<:Any, T},
         impurity_resistivity::Union{Vector{<:Number}, Missing} = missing,
         z_resistivity::Union{Vector{<:Number}, Missing} = missing,
         impurity_hall::Union{Vector{<:Number}, Missing} = missing,

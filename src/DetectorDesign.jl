@@ -16,9 +16,9 @@ fills in after running the field solver. Construct via the convenience
 constructors such as [`InvertedCoaxDesign`](@ref).
 
 # Fields
-- `name::AbstractString`: detector identifier (e.g. `"V13044A"`).
-- `geometry::Union{AbstractDesignGeometry, Missing}`: physical geometry, with
-  type parameter `G` carrying the geometry's validity tag.
+- `name::AbstractString`: detector identifier.
+- `geometry::AbstractDesignGeometry`: physical geometry, with type parameter
+  `G` carrying the geometry's validity tag.
 - `offset::T`: axial position of the p⁺ contact relative to the boule seed
   end, in mm.
 - `mass::Union{T, Missing}`: physical crystal mass in g, derived from the
@@ -32,7 +32,7 @@ constructors such as [`InvertedCoaxDesign`](@ref).
 """
 mutable struct DetectorDesign{T,G} <: AbstractDetectorDesign{T,G}
     name::AbstractString
-    geometry::Union{AbstractDesignGeometry{T}, Missing}
+    geometry::AbstractDesignGeometry{T}
     offset::T
     mass::Union{T, Missing}
     is_simulated::Bool
