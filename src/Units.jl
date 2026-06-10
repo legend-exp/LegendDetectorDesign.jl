@@ -47,7 +47,7 @@ const ge_76_density = 5.544
     default_operational_V = 5000
 
 Fallback recommended operating voltage in volts, used when no `Vop` is supplied
-when serialising a design to metadata.
+when serializing a design to metadata.
 """
 const default_operational_V = 5000
 

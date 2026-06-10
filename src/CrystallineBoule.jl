@@ -122,7 +122,7 @@ end
 """
     boule_to_meta(boule::CrystallineBoule, det::DetectorDesign) -> OrderedDict
 
-Serialise `boule` together with the cutting offset of `det` into the
+Serialize `boule` together with the cutting offset of `det` into the
 LEGEND-format boule-metadata `OrderedDict`, matching the layout used by the
 LEGEND metadata YAMLs.
 

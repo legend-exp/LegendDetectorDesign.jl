@@ -378,7 +378,7 @@ end
     end
 end
 
-@recipe function f(det::DetectorDesign{T}; crystal_prefix = "", seed_label = "SEED", order = det.name[2:3], technical_drawing = false, spot_radius = 4, spot_offset = 25) where {T}
+@recipe function f(det::DetectorDesign{T}; crystal_prefix = "", seed_label = "SEED", order = det.name[2:3], technical_drawing = false, spot_radius = 2, spot_offset = det.geometry.groove_outer_radius + spot_radius + 2, spot_label = "") where {T}
     aspect_ratio := 1.0
     corner_rounding --> :both
     if technical_drawing 
@@ -397,7 +397,6 @@ end
     @series begin
         if technical_drawing 
             include_measurements --> true
-            #measurementfontsize --> 8
         end
         det.geometry
     end
@@ -447,7 +446,7 @@ end
             markercolor := :white
             series_annotations := [
                 Plots.text(seed_label, 12, :black, :center),
-                Plots.text("Al spots", 8, :grey, :center),
+                Plots.text(spot_label, 8, :grey, :center),
                 Plots.text("Crystal ID: $(crystal_prefix*det.name[4:end-1])", 12, :black, :left),
                 Plots.text("Diode: $(det.name)\nOrder: $order", 8, :gray, :left)
             ]
@@ -471,8 +470,9 @@ end
                 fillcolor --> :darkgray
                 label --> nothing
 
+                geo = boule.geometry
                 z = range(z_hall - slice_thickness, z_hall + slice_thickness, Int(ceil(slice_thickness*2)))
-                r = boule.geometry.spline(z)
+                r = geo.spline.(clamp.(z, geo.z[1], geo.z[end]))
                 vcat(z,reverse(z)), vcat(r,-reverse(r))
             end
         end
@@ -488,7 +488,7 @@ end
     linecolor --> :black
 
     z = range(slice[1], slice[2], 200)
-    r = geo.spline(z)
+    r = geo.spline.(clamp.(z, geo.z[1], geo.z[end]))
 
     vcat(z,reverse(z)), vcat(r,-reverse(r))
 end
