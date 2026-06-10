@@ -3,7 +3,7 @@
 """
     AbstractDetectorDesign{T <: SSDFloat, G <: AbstractDesignGeometry}
 
-Supertype for detector designs — a geometry plus the simulated characterisation
+Supertype for detector designs — a geometry plus the simulated characterization
 results (depletion voltage, operating voltage, minimum bulk field, mass).
 """
 abstract type AbstractDetectorDesign{T <: SSDFloat, G <: AbstractDesignGeometry} end
@@ -24,11 +24,11 @@ constructors such as [`InvertedCoaxDesign`](@ref).
 - `mass::Union{T, Missing}`: physical crystal mass in g, derived from the
   geometry volume and [`ge_76_density`](@ref). `missing` for invalid geometries.
 - `is_simulated::Bool`: whether a field-solver run has populated the
-  characterisation results below.
+  characterization results below.
 - `Emin::Union{T, Missing}`, `Emin_pos::Union{Tuple{T,T}, Missing}`: minimum
   bulk electric field and its `(r, z)` location, in V/cm and mm.
 - `Vdep::Union{T, Missing}`: estimated depletion voltage in V.
-- `Vop::Union{T, Missing}`: operational voltage used during characterisation, V.
+- `Vop::Union{T, Missing}`: operational voltage used during characterization, V.
 """
 mutable struct DetectorDesign{T,G} <: AbstractDetectorDesign{T,G}
     name::AbstractString
@@ -47,7 +47,7 @@ end
 
 Rebuild `det` with a new geometry `geo`, preserving the `name` and `offset`,
 recomputing `mass` from `geo`, and **resetting** the simulation flags
-(`is_simulated`, `Emin`, `Vdep`, `Vop`) — the previous characterisation is no
+(`is_simulated`, `Emin`, `Vdep`, `Vop`) — the previous characterization is no
 longer valid for a different geometry.
 """
 function DetectorDesign(det::DetectorDesign{T}, geo::AbstractDesignGeometry{T}) where {T <: SSDFloat}
@@ -162,7 +162,7 @@ end
 """
     design_to_meta(det::DetectorDesign{T}) -> PropDict
 
-Serialise `det` to the LEGEND detector-metadata `PropDict` layout. Delegates
+Serialize `det` to the LEGEND detector-metadata `PropDict` layout. Delegates
 to the geometry-level [`geo_to_meta`](@ref), forwarding `det.Vop` and
 `det.name`.
 """
@@ -216,7 +216,7 @@ get_unitful_property(det::DetectorDesign, ::Val{:offset}) = det.offset * interna
 Convert a [`DetectorDesign`](@ref) into the corresponding SolidStateDetectors
 object, ready for field-solver use. Internally:
 
-1. [`design_to_meta`](@ref) serialises the geometry to a `PropDict`.
+1. [`design_to_meta`](@ref) serializes the geometry to a `PropDict`.
 2. SSD builds the simulation / detector from that metadata plus
    [`get_default_xtal_meta`](@ref) as a placeholder impurity profile.
 3. The placeholder is replaced via `SolidStateDetector(ssd, imp_model)`:
