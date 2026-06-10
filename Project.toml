@@ -1,6 +1,6 @@
 name = "LegendDetectorDesign"
 uuid = "a36173eb-ee8f-473c-bbea-a8a9322f1a0c"
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
