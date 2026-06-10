@@ -53,7 +53,7 @@ fit_parameter_units(model::Symbol) =  fit_parameter_units(Val(model))
     linear_boule(z, p) = p[1] + p[2]*z
 
 Two-parameter linear impurity profile `ρ(z) = a + b·z` (broadcasted over `z`).
-Parameter order: `a, b` in [`internal_impurity_quantity`](@ref) and
+Parameter order: `a, b` in `internal_impurity_quantity` and
 `impurity / mm` respectively.
 """
 @. linear_boule(z,p) = p[1] + p[2]*z

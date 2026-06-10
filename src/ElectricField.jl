@@ -42,7 +42,7 @@ satisfies [`is_local_bulk_Efield_minima`](@ref) (i.e., a true local minimum,
 not just a low value on a monotonic ramp toward a contact); falls back to the
 global minimum if no local minimum exists.
 
-Returns the magnitude in `V/cm` ([`internal_efield_unit`](@ref)) and its
+Returns the magnitude in `V/cm` (`internal_efield_unit`) and its
 spatial position in the simulation's internal coordinate units.
 """
 function find_minimum_Efield_in_bulk(sim::Simulation; require_local_min = false, verbose = false) #move to SSD?

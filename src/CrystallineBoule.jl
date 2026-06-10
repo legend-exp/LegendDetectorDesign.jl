@@ -32,7 +32,7 @@ density inside that detector's volume.
 - `impurity_hall`, `z_hall`: Hall-measured impurity densities and their axial
   positions.
 - `impurity_model_parameters`: best-fit parameters of `impurity_model`, in the
-  order returned by [`fit_parameter_names`](@ref).
+  order returned by `fit_parameter_names`.
 """
 mutable struct CrystallineBoule{T} <: AbstractCrystallineBoule{T}
     name::AbstractString
@@ -58,7 +58,7 @@ Construct a [`CrystallineBoule`](@ref) with element type `T`.
 
 `impurity_model` is a `Symbol` naming a registered curve (see
 [`fit_function`](@ref)); the corresponding `impurity_model_parameters` must be
-ordered to match [`fit_parameter_names`](@ref) for that model. All vector
+ordered to match `fit_parameter_names` for that model. All vector
 inputs may be unitful — they are converted to internal units on construction
 and stored as bare numbers. Any of the measurement vectors may be `missing`
 when the data is not available.
@@ -82,7 +82,7 @@ end
 
 Return a field of `boule` re-attached with its physical units, via `Val`
 dispatch on `prop`. Currently supports `:impurity_model_parameters`, which
-attaches the per-parameter units returned by [`fit_parameter_units`](@ref) for
+attaches the per-parameter units returned by `fit_parameter_units` for
 the boule's impurity model.
 """
 get_unitful_property(boule::CrystallineBoule, prop::Symbol) = get_unitful_property(boule, Val(prop))
@@ -93,7 +93,7 @@ get_unitful_property(boule::CrystallineBoule, ::Val{:impurity_model_parameters})
     get_impurity_density(boule::CrystallineBoule, z) -> Quantity
 
 Evaluate the boule's impurity-density model at axial position `z` and return
-the value with units of [`internal_impurity_quantity`](@ref) (`1e9·cm⁻³`).
+the value with units of `internal_impurity_quantity` (`1e9·cm⁻³`).
 `z` is converted to internal units; vector / array `z` returns an array via
 broadcasting.
 """
