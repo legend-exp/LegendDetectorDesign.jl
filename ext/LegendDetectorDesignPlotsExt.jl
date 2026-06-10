@@ -8,6 +8,7 @@ using Printf
 using LinearAlgebra
 using LegendDetectorDesign
 using SolidStateDetectors
+using Interpolations
 
 abstract type AbstractMeasurement{T <: Real} end
 
@@ -213,21 +214,10 @@ end
     end
 end
 
-@recipe function f(geo::InvertedCoaxGeometry{T, ValidGeometry}; corner_rounding = :both, include_measurements = false, y_offset = 0) where {T}
-    fc = include_measurements ? :white : :lightgray
-    seriestype := :shape
-    fillcolor --> fc
-    aspect_ratio := 1.0
-    label --> nothing
+function det_outline(geo::InvertedCoaxGeometry{T}; corner_rounding = :both, contact = :none) where {T}
     H = geo.height
     R = geo.radius
 
-    if include_measurements
-        ticks := false
-        guide := ""
-        axis := false
-    end
-    
     bottom_taper_x = [R-geo.bottom_taper_height*tand(geo.bottom_taper_angle),R]
     bottom_taper_y = [0,geo.bottom_taper_height]
     
@@ -237,8 +227,13 @@ end
         bottom_taper_y = bottom_taper_y[2] .- sqrt.(bottom_taper_y[2]^2 .- x.^2)
     end
     
-    detslicebot_x = [0,geo.groove_inner_radius,geo.groove_inner_radius,geo.groove_outer_radius,geo.groove_outer_radius,bottom_taper_x...]
-    detslicebot_y = [0,0,geo.groove_depth,geo.groove_depth,0,bottom_taper_y...]
+    detslicebot_x, detslicebot_y = if contact == :n
+        [geo.groove_outer_radius,bottom_taper_x...],
+        [0,bottom_taper_y...]
+    else
+        [0,geo.groove_inner_radius,geo.groove_inner_radius,geo.groove_outer_radius,geo.groove_outer_radius,bottom_taper_x...],
+        [0,0,geo.groove_depth,geo.groove_depth,0,bottom_taper_y...]
+    end
     detbot_y = vcat(reverse(detslicebot_y), detslicebot_y)
     detbot_x = vcat(-reverse(detslicebot_x), detslicebot_x)
     
@@ -257,49 +252,94 @@ end
     
     dettop_y = vcat(detslicetop_y, reverse(detslicetop_y))
     dettop_x = vcat(detslicetop_x, -reverse(detslicetop_x))
+    if contact == :n
+        vcat(detslicebot_x, dettop_x, -reverse(detslicebot_x)), vcat(detslicebot_y, dettop_y, reverse(detslicebot_y))
+    elseif contact == :p
+        [-geo.groove_inner_radius, geo.groove_inner_radius], [0,0]
+    else
+        vcat(detbot_x, dettop_x, detbot_x[1:1]), vcat(detbot_y, dettop_y, detbot_y[1:1])
+    end
+end
+
+@recipe function f(geo::InvertedCoaxGeometry{T, ValidGeometry}; corner_rounding = :both, include_measurements = false, label_measurements = false, color_contacts = [], y_offset = 0) where {T}
+    fc = include_measurements ? :white : :lightgray
+    seriestype := :shape
+    fillcolor --> fc
+    aspect_ratio := 1.0
+    label --> nothing
+    H = geo.height
+    R = geo.radius
+    borehole_x = geo.borehole_radius+geo.borehole_taper_height*tand(geo.borehole_taper_angle)
+
+    if include_measurements
+        ticks := false
+        guide := ""
+        axis := false
+    end
     
-    det_y = vcat(detbot_y, dettop_y, detbot_y[1:1])
-    det_x = vcat(detbot_x, dettop_x, detbot_x[1:1])
+    det_x, det_y = det_outline(geo; corner_rounding=corner_rounding)
     
     @series begin
         linestyle := :solid
         linecolor --> :black
         det_x, det_y .+ y_offset
     end
-    
+
+    if length(color_contacts) == 2
+        @series begin
+            linestyle := :solid
+            seriestype := :path
+            linecolor := color_contacts[1] 
+            det_x_n, det_y_n = det_outline(geo; corner_rounding=corner_rounding, contact=:n)
+            det_x_n, det_y_n .+ y_offset
+        end
+        @series begin
+            linestyle := :solid
+            seriestype := :path
+            linecolor := color_contacts[2]
+            det_x_p, det_y_p = det_outline(geo; corner_rounding=corner_rounding, contact=:p)
+            det_x_p, det_y_p .+ y_offset
+        end
+    end
+
     if include_measurements
         @series begin
             annotate_measurement --> true
             linestyle := :solid
+            ann = if label_measurements 
+                ["H","D","ID","OD","BD","BH","G","BOD","TH","τ","","","","","","",""]
+            else 
+                ["", "Ø", "Ø", "Ø", "Ø", "", "", "Ø", "", "", "", "", "", "", "", ""] 
+            end
             vm = AbstractMeasurement[
-                LinearMeasurement{T}((-R, 0), (-R, H),16,""),
-                LinearMeasurement{T}((-R, H), (R, H),16,"Ø"),
-                LinearMeasurement{T}((-geo.groove_inner_radius, 0), (geo.groove_inner_radius, 0),-10,"Ø"),
-                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (geo.groove_outer_radius, 0),-20,"Ø"),
-                LinearMeasurement{T}((-geo.borehole_radius, geo.borehole_pc_gap), (geo.borehole_radius,  geo.borehole_pc_gap),-9,"Ø"),
-                LinearMeasurement{T}((-borehole_x, geo.borehole_pc_gap), (-borehole_x,  H),10,"",(10+borehole_x-geo.borehole_radius, 0), (2,0)),
-                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (-geo.groove_outer_radius, geo.groove_depth),8,"", (0,8), (0,1)),
+                LinearMeasurement{T}((-R, 0), (-R, H),16,ann[1]),
+                LinearMeasurement{T}((-R, H), (R, H),16,ann[2]),
+                LinearMeasurement{T}((-geo.groove_inner_radius, 0), (geo.groove_inner_radius, 0),-10,ann[3]),
+                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (geo.groove_outer_radius, 0),-20,ann[4]),
+                LinearMeasurement{T}((-geo.borehole_radius, geo.borehole_pc_gap), (geo.borehole_radius,  geo.borehole_pc_gap),-9,ann[5]),
+                LinearMeasurement{T}((-borehole_x, geo.borehole_pc_gap), (-borehole_x,  H),10,ann[6],(10+borehole_x-geo.borehole_radius, 0), (2,0)),
+                LinearMeasurement{T}((-geo.groove_outer_radius, 0), (-geo.groove_outer_radius, geo.groove_depth),8,ann[7], (0,8), (0,1)),
             ]
             idx = findall(getindex.(get_annotation_info.(vm), 3) .> 0)
             vm = vm[idx]
             if geo.borehole_taper_angle > 0 && geo.borehole_taper_height > 0
-                push!(vm, LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,"Ø"))
+                push!(vm, LinearMeasurement{T}((-borehole_x, H), (borehole_x,  H),8,ann[8]))
                 if geo.borehole_taper_height != H - geo.borehole_pc_gap
-                    push!(vm,LinearMeasurement{T}((borehole_x, H - geo.borehole_taper_height), (borehole_x, H), -10,"",(-10-borehole_x+geo.borehole_radius, 0), (2,0)))
+                    push!(vm,LinearMeasurement{T}((borehole_x, H - geo.borehole_taper_height), (borehole_x, H), -10,ann[9],(-10-borehole_x+geo.borehole_radius, 0), (2,0)))
                 end
-                push!(vm, AngularMeasurement{T}((borehole_x, H), (geo.borehole_radius, H - geo.borehole_taper_height), (geo.borehole_radius, H), 25, "", (26,0), (1,0)))
+                push!(vm, AngularMeasurement{T}((borehole_x, H), (geo.borehole_radius, H - geo.borehole_taper_height), (geo.borehole_radius, H), 25, ann[10], (26,0), (1,0)))
             end
             if geo.top_taper_angle > 0 && geo.top_taper_height > 0 && corner_rounding != :top && corner_rounding != :both
                 taper_x = R-geo.top_taper_height*tand(geo.top_taper_angle)
-                push!(vm,LinearMeasurement{T}((taper_x, H - geo.top_taper_height), (taper_x, H), 4,"",(4+R-taper_x, 0), (2,0)))
-                push!(vm,LinearMeasurement{T}((taper_x, H), (R, H), 8,""))
-                push!(vm, AngularMeasurement{T}((R, H), (R, H - geo.top_taper_height), (taper_x, H), 20, "", (0,20), (0,1)))
+                push!(vm,LinearMeasurement{T}((taper_x, H - geo.top_taper_height), (taper_x, H), 4,ann[11],(4+R-taper_x, 0), (2,0)))
+                push!(vm,LinearMeasurement{T}((taper_x, H), (R, H), 8,ann[12]))
+                push!(vm, AngularMeasurement{T}((R, H), (R, H - geo.top_taper_height), (taper_x, H), 20, ann[13], (0,20), (0,1)))
             end
             if geo.bottom_taper_angle > 0 && geo.bottom_taper_height > 0 && corner_rounding != :bottom && corner_rounding != :both
                 taper_x = R-geo.bottom_taper_height*tand(geo.bottom_taper_angle)
-                push!(vm,LinearMeasurement{T}((taper_x, 0), (taper_x, geo.bottom_taper_height), 4,"",(0,4+R-taper_x), (2,0)))
-                push!(vm,LinearMeasurement{T}((taper_x, 0), (R, 0), -8,""))
-                push!(vm, AngularMeasurement{T}((taper_x, 0), (R, geo.bottom_taper_height), (R, 0), 20, "", (20,0), (1,0)))
+                push!(vm,LinearMeasurement{T}((taper_x, 0), (taper_x, geo.bottom_taper_height), 4,ann[14],(0,4+R-taper_x), (2,0)))
+                push!(vm,LinearMeasurement{T}((taper_x, 0), (R, 0), -8,ann[15]))
+                push!(vm, AngularMeasurement{T}((taper_x, 0), (R, geo.bottom_taper_height), (R, 0), 20, ann[16], (20,0), (1,0)))
             end
             vm
         end
@@ -340,24 +380,24 @@ end
 
 @recipe function f(det::DetectorDesign{T}; crystal_prefix = "", seed_label = "SEED", order = det.name[2:3], technical_drawing = false, spot_radius = 4, spot_offset = 25) where {T}
     aspect_ratio := 1.0
-    corner_rounding --> false
+    corner_rounding --> :both
     if technical_drawing 
         ticks := false
         guide := ""
         axis := false
         label --> nothing
-        bottom_margin --> 3*Plots.mm
-        top_margin --> 3*Plots.mm
-        left_margin --> 3*Plots.mm
-        right_margin --> 3*Plots.mm
+        bottom_margin --> 2*Plots.mm
+        top_margin --> 2*Plots.mm
+        left_margin --> 2*Plots.mm
+        right_margin := 2*Plots.mm
+        size --> (500,1000)
+        xlims --> (-70, 70)
+        ylims --> (-160, 140)
     end
     @series begin
         if technical_drawing 
-            size --> (500,1200)
             include_measurements --> true
             #measurementfontsize --> 8
-            xlims := (-90, 90)
-            ylims := (-150, 155)
         end
         det.geometry
     end
@@ -411,7 +451,169 @@ end
                 Plots.text("Crystal ID: $(crystal_prefix*det.name[4:end-1])", 12, :black, :left),
                 Plots.text("Diode: $(det.name)\nOrder: $order", 8, :gray, :left)
             ]
-            [0, x + spot_offset/2, -13, -13], [geo.height+16+10, y - spot_guide_offset - 3, -148, -154]
+            [0, x + spot_offset/2, 0, 0], [geo.height+16+10, y - spot_guide_offset - 3, -149, -156]
+        end
+    end
+end
+
+
+@recipe function f(boule::CrystallineBoule)
+    aspect_ratio := 1.0
+    slice_thickness = 2.5
+    @series begin
+        boule.geometry
+    end
+    if !ismissing(boule.z_hall)
+        for z_hall in boule.z_hall
+            @series begin
+                seriestype := :path
+                seriestype := :shape
+                fillcolor --> :darkgray
+                label --> nothing
+
+                z = range(z_hall - slice_thickness, z_hall + slice_thickness, Int(ceil(slice_thickness*2)))
+                r = boule.geometry.spline(z)
+                vcat(z,reverse(z)), vcat(r,-reverse(r))
+            end
+        end
+    end
+end
+
+@recipe function f(geo::BouleGeometry; slice = (geo.z[1], geo.z[end]))
+    aspect_ratio := 1.0
+    seriestype := :shape
+    fillcolor --> :lightgray
+    label --> nothing
+    linestyle --> :solid
+    linecolor --> :black
+
+    z = range(slice[1], slice[2], 200)
+    r = geo.spline(z)
+
+    vcat(z,reverse(z)), vcat(r,-reverse(r))
+end
+
+@recipe function f(boule::CrystallineBoule{T}, det::DetectorDesign{T}; corner_rounding = :both, technical_drawing = false, slice_offset = 20) where {T}
+    aspect_ratio := 1.0
+    size --> (1200,400)
+
+    slice_thickness = 2.5
+    default_offset = 12
+
+    if technical_drawing 
+        ticks := false
+        guide := ""
+        axis := false
+        label --> nothing
+        bottom_margin --> 2*Plots.mm
+        top_margin --> 2*Plots.mm
+        left_margin --> 2*Plots.mm
+        right_margin := 2*Plots.mm
+    end
+    hall_cuts = ismissing(boule.z_hall) ? [] : [boule.z_hall .+ slice_thickness, boule.z_hall .- slice_thickness]
+    zcuts = sort(vcat(det.offset, boule.geometry.z[1], boule.geometry.z[end], hall_cuts...))
+    idx = findfirst(zcuts .== det.offset)
+    zp = (zcuts[idx-1], zcuts[idx+1])
+    @series begin
+        slice --> zp
+        boule.geometry
+    end
+    R = det.geometry.radius
+    det_x, det_y = if technical_drawing
+        [-1, 1, 1, -1]*R, [0, 0, 1, 1]*det.geometry.height
+    else 
+        det_outline(det.geometry; corner_rounding=corner_rounding)
+    end
+    @series begin
+        seriestype := :shape
+        linestyle := :solid
+        linecolor --> :black
+        fillcolor --> :white
+        label --> nothing
+        -det_y .+ det.offset, det_x
+    end
+    if technical_drawing
+        θ = range(0,2π,600)
+        z1_cut = det.offset - det.geometry.height
+        z2_cut = det.offset
+        r1 = boule.geometry.spline(z1_cut)
+        r2 = boule.geometry.spline(z2_cut)
+
+        zs = collect(zp[1]:0.1:zp[end])
+    
+        boule_measurements = [
+            LinearMeasurement{T}((zs[1], -R), (z1_cut, -R),
+                -default_offset,"",(boule.geometry.spline(zs[1])-R-default_offset,r1-R-default_offset),(1,1)),
+            LinearMeasurement{T}((z1_cut, -R), (z2_cut, -R),
+                -default_offset,"",(r1-R-default_offset,r2-R-default_offset),(1,1)),
+            LinearMeasurement{T}((z2_cut, -R), (zs[end], -R),
+                -default_offset,"",(r2-R-default_offset,boule.geometry.spline(zs[end])-R-default_offset),(1,1)),
+            LinearMeasurement{T}((z2_cut-2default_offset , -R), (z2_cut-2default_offset , R),0,"Ø")
+        ]
+
+        slice_measurements = [
+            LinearMeasurement{T}((-(r1 + slice_offset) + zs[1], -R), (-(r1 + slice_offset) + zs[1], R),0,"Ø"),
+            LinearMeasurement{T}((r2 + slice_offset + zs[end] , -R), (r2 + slice_offset + zs[end] , R),0,"Ø"),
+            LinearMeasurement{T}((-(r1 + slice_offset) + zs[1], -r1), (-(r1 + slice_offset) + zs[1], r1),r1+default_offset,"Ø"),
+            LinearMeasurement{T}((r2 + slice_offset + zs[end] , -r2), (r2 + slice_offset + zs[end] , r2), -r2-default_offset,"Ø"),
+        ]
+
+        boule_slices = [
+            LinearMeasurement{T}((z1_cut, R),(z1_cut+1.5default_offset, R), 8, "A", (8,8),(4,4)),
+            LinearMeasurement{T}((z1_cut, -R),(z1_cut+1.5default_offset, -R), -default_offset-8, "A", (-8,-8),(4,4)),
+            LinearMeasurement{T}((z2_cut, R),(z2_cut+1.5default_offset, R), 8, "B", (8,8),(4,4)),
+            LinearMeasurement{T}((z2_cut, -R),(z2_cut+1.5default_offset, -R), -default_offset-8, "B", (-8,-8),(4,4)),
+        ]
+
+        @series begin
+            seriestype := :shape
+            fillcolor --> :lightgray
+            r1*cos.(θ) .- (r1 + slice_offset - zs[1]), r1*sin.(θ)
+        end
+        @series begin
+            seriestype := :shape
+            fillcolor --> :white
+            R*cos.(θ) .- (r1 + slice_offset - zs[1]), R*sin.(θ)
+        end
+        @series begin
+            seriestype := :shape
+            fillcolor --> :lightgray
+            r2*cos.(θ) .+ (r2 + slice_offset + zs[end]), r2*sin.(θ)
+        end
+        @series begin
+            seriestype := :shape
+            fillcolor --> :white
+            R*cos.(θ) .+ (r2 + slice_offset + zs[end]), R*sin.(θ)
+        end
+        @series begin
+            measurementfontsize --> 8
+            lw --> 0.7
+            vcat(boule_measurements, slice_measurements)
+        end
+        @series begin
+            measurementfontsize --> 12
+            annotate_measurement := false
+            arrows_and_guides := :start
+            arrow_length := 1.5
+            lw --> 1
+            boule_slices
+        end
+        @series begin
+            seriestype := :scatter
+            markersize := 0
+            markercolor := :white
+            series_annotations := [
+                Plots.text("SEED END", 12, :gray, :center, rotation = 90),
+                Plots.text("TAIL END", 12, :gray, :center, rotation = 270),
+                Plots.text("SECTION", 12, :gray, :center),
+                Plots.text("A-A", 8, :gray, :center),
+                Plots.text("SECTION", 12, :gray, :center),
+                Plots.text("B-B", 8, :gray, :center),
+                Plots.text(boule.name, 16, :black, :center)
+            ]
+            r = max(r1, r2)
+            [zs[1]-5, zs[end]+5, zs[1] - (r1 + slice_offset), zs[1] - (r1 + slice_offset) + 20, r2 + slice_offset + zs[end], r2 + slice_offset + zs[end] +20, zs[1] - (r1 + slice_offset)], 
+            [0, 0, r + 8, r + 8, r + 8, r + 8, -43 - 21]
         end
     end
 end
