@@ -115,6 +115,14 @@ get_unitful_property(det::DetectorDesign, prop::Symbol) = get_unitful_property(d
 
 get_unitful_property(det::DetectorDesign, ::Val{:offset}) = det.offset * internal_length_unit
 
+function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, boule::CrystallineBoule{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
+    meta = design_to_meta(det)
+    sim = Simulation{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false; kwargs...)
+    imp_model = ssd_ptype*impurity_density_model(nameof(boule.impurity_model)){T}(get_unitful_property(boule, :impurity_model_parameters), get_unitful_property(det, :offset))
+    sim.detector = SolidStateDetector(sim.detector, imp_model)
+    sim
+end
+
 function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
     meta = design_to_meta(det)
     sim = Simulation{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false; kwargs...)
