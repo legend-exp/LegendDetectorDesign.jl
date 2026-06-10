@@ -25,14 +25,14 @@ call.
 ## Installation
 
 `LegendDetectorDesign.jl` lives in the
-[`legend-julia-registry`](https://github.com/legend-exp/legend-julia-registry)
+[`LegendJuliaRegistry`](https://github.com/legend-exp/LegendJuliaRegistry)
 along with the rest of the LEGEND Julia stack. Add the registry once, then
 install the package the usual way:
 
 ```julia
 using Pkg
 pkg"registry add https://github.com/JuliaRegistries/General"
-pkg"registry add https://github.com/legend-exp/legend-julia-registry"
+pkg"registry add https://github.com/legend-exp/LegendJuliaRegistry"
 pkg"add LegendDetectorDesign"
 ```
 
