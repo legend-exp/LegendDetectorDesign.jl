@@ -47,22 +47,65 @@ function populate_design!(det::DetectorDesign{T}, sim::Simulation{T}, Vop::T; ve
 end
 
 """
-    characterize!(det::DetectorDesign, boule::CrystallineBoule; kwargs...) -> Simulation
+    adapt_potential_to_depletion_plus_offset!(det::DetectorDesign{T}, sim::Simulation{T};
+                                               offset::T = T(500), verbose = false)
+
+Estimate the depletion voltage from `sim`, jump the electric potential to
+`Vop = Vdep + offset` analytically via the weighting-potential superposition
+trick, and re-tag the bias contact (`contact_id = 2`) to the new `Vop`.
+
+Steps:
+
+1. Adapt the bias contact's weighting potential to the electric-potential
+   grid via `_adapt_weighting_potential_to_electric_potential_grid!`.
+2. Estimate `Vdep` via SSD's `estimate_depletion_voltage`; store on `det.Vdep`.
+3. Use the superposition identity
+   `φ(Vop) = φ_solved(V_bias) + (Vop − V_bias) · φ_W`
+   to shift the converged electric potential to the new bias — no second
+   field solve required. Stores `Vop` on `det.Vop`.
+4. Re-tag the detector's contact-2 potential to the new `Vop`.
+
+Does **not** populate `det.Emin` / `det.Emin_pos` — the caller is responsible
+for calling [`populate_design!`](@ref) afterwards (typically with `det.Vop`
+as the bias).
+
+Shared between the auto-discover-depletion and reference-simulation paths
+of [`characterize!`](@ref). `offset` defaults to 500 V to land safely above
+the depletion knee.
+"""
+function adapt_potential_to_depletion_plus_offset!(det::DetectorDesign{T}, sim::Simulation{T}; offset::T = T(500), verbose::Bool = false) where {T}
+    if verbose @info "Calculating weighting potential for depletion voltage estimation and projection to Vdep + $(offset) V..." end
+    _adapt_weighting_potential_to_electric_potential_grid!(sim, 2)
+    Vdep = T(to_internal_units(estimate_depletion_voltage(sim, check_for_depletion = false, verbose = verbose)))
+    det.Vdep = Vdep
+    if verbose @info "Using superposition principle to calculate at Vdep + $(offset) V...\n" end
+    Vop = Vdep + offset
+    det.Vop = Vop
+    ϕV = sim.weighting_potentials[2].data
+    sim.electric_potential.data .+= (Vop - sim.detector.contacts[2].potential) .* ϕV
+    sim.detector = SolidStateDetector(sim.detector, contact_id = 2, contact_potential = Vop)
+end
+
+"""
+    characterize!(det::DetectorDesign, boule::CrystallineBoule, [Vop_or_refsim]; kwargs...) -> Simulation
     characterize!(det::DetectorDesign, imp_model::AbstractImpurityDensity; Vmax = …, refinement_limits = …, …) -> Simulation
     characterize!(det::DetectorDesign, imp_model::AbstractImpurityDensity, Vop::Real; check_for_depletion = true, initialize = true, …) -> Simulation
-    characterize!(det::DetectorDesign, imp_model::AbstractImpurityDensity, reference_simulation::Simulation; Vop = …, verbose = false) -> Simulation
+    characterize!(det::DetectorDesign, imp_model::AbstractImpurityDensity, reference_simulation::Simulation; verbose = false) -> Simulation
 
 Run a SolidStateDetectors field-solver pass for `det` and populate its
 simulation-derived fields (`Vdep`, `Vop`, `Emin`, `Emin_pos`, `mass`,
 `is_simulated`). Returns the converged `Simulation`.
 
-The four methods differ in how the impurity density is supplied and how the
+The methods differ in how the impurity density is supplied and how the
 solver is driven:
 
-- **`(det, boule)`** — builds the impurity model from the boule's fit
-  parameters (offset-adjusted to the detector's cutting position) and
-  delegates to the `(det, imp_model)` method. The typical entry point when
-  you have a [`CrystallineBoule`](@ref).
+- **`(det, boule, args...)`** — the typical entry point when you have a
+  [`CrystallineBoule`](@ref). Builds the impurity model with
+  [`impurity_model_from_boule`](@ref) and forwards `args...` / `kwargs...` to
+  whichever `(det, imp_model, args...)` method below matches. So
+  `characterize!(det, boule)` runs auto-depletion,
+  `characterize!(det, boule, 3000)` solves at a fixed bias, and
+  `characterize!(det, boule, sim_ref)` warm-starts from a reference.
 
 - **`(det, imp_model)`** — auto-discover depletion: solves at `Vmax` with two
   refinement levels, then if the detector is depleted, refines further, uses
@@ -77,22 +120,18 @@ solver is driven:
   previous `Vdep` / `Vop` and `check_for_depletion = false` to always
   populate.
 
-- **`(det, imp_model, reference_simulation)`** — **warm-start**: reuse the
-  grid and converged potential of `reference_simulation`, swap in the new
-  detector + impurity model, and re-converge via `update_till_convergence!`
-  (no refinement, no cold restart). Much faster when `det` is a small
-  perturbation of the reference. Default `Vop` is the reference's current
-  contact-2 potential.
+- **`(det, imp_model, reference_simulation)`** — **warm-start**: deep-copy the
+  reference's grid + converged potential, swap in the new detector + impurity
+  model, and re-converge via `update_till_convergence!` (no refinement, no
+  cold restart). Much faster when `det` is a small perturbation of the
+  reference. Then applies
+  [`adapt_potential_to_depletion_plus_offset!`](@ref) so `det.Vop` lands at
+  `Vdep + 500 V` rather than inheriting the reference's bias — the
+  superposition step that dominates compute time here, but kept for
+  consistent `Vop` semantics with the other `characterize!` paths.
 """
-function characterize!(det::DetectorDesign{T}, boule::CrystallineBoule{T};
-        env::HPGeEnvironment = HPGeEnvironment(),
-        verbose::Bool = false,
-        Vmax::Real = default_operational_V,
-        refinement_limits::Vector{<:Real} = [0.2, 0.1, 0.05, 0.02]
-    ) where {T<:AbstractFloat}
-    idm = ssd_ptype*impurity_density_model(nameof(boule.impurity_model)){T}(get_unitful_property(boule, :impurity_model_parameters), get_unitful_property(det, :offset))
-    characterize!(det, idm, env = env, verbose = verbose, Vmax = Vmax, refinement_limits = refinement_limits)
-end
+characterize!(det::DetectorDesign{T}, boule::CrystallineBoule{T}, args...; kwargs...) where {T<:AbstractFloat} =
+    characterize!(det, impurity_model_from_boule(boule, det), args...; kwargs...)
 
 function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T};
         env::HPGeEnvironment = HPGeEnvironment(),
@@ -119,19 +158,10 @@ function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensit
                 depletion_handling = true, 
                 verbose = verbose, 
                 initialize = false)
-            if verbose @info "Calculating weighting potential for depletion voltage estimation and projection to Vdep + 500V..." end
-            _adapt_weighting_potential_to_electric_potential_grid!(sim, 2)
         end
         if length(refinement_limits) <= 2 || is_depleted(sim.point_types)
-            Vdep = T(to_internal_units(estimate_depletion_voltage(sim, check_for_depletion = false, verbose = verbose)))
-            det.Vdep = Vdep
-            if verbose @info "Using superposition principle to calculate at Vdep + 500V...\n" end
-            Vop = Vdep + 500
-            det.Vop = Vop
-            ϕV = sim.weighting_potentials[2].data
-            sim.electric_potential.data .+= (Vop - sim.detector.contacts[2].potential) .* ϕV
-            sim.detector = SolidStateDetector(sim.detector, contact_id = 2, contact_potential =  Vop)
-            populate_design!(det, sim, T(Vop), verbose = verbose)
+            adapt_potential_to_depletion_plus_offset!(det, sim; verbose = verbose)
+            populate_design!(det, sim, det.Vop; verbose = verbose)
         end
     end
     sim
@@ -169,27 +199,29 @@ function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensit
 end
 
 # Method where a reference simulation is provided, so that the electric potential can be updated till convergence instead of recalculating from scratch at each iteration. The idea is that the det is just a small permulation of the reference simulation, so the electric potential should be close to the reference simulation at each iteration, and thus should converge faster.
-function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, reference_simulation::Simulation{T}; 
-    Vop::Real = reference_simulation.detector.contacts[2].potential,
+function characterize!(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, reference_simulation::Simulation{T};
     verbose::Bool = false
 ) where {T<:AbstractFloat}
-
-    det.Vop = Vop
-    reference_simulation.detector = SolidStateDetector{T}(det, imp_model) ##is this necessary?
+    sim = deepcopy(reference_simulation) #should we edit simulation in place or deepcopy?
+    sim.detector = SolidStateDetector{T}(det, imp_model)
     
-    update_till_convergence!( reference_simulation, ElectricPotential,
+    update_till_convergence!( sim, ElectricPotential,
                                     n_iterations_between_checks = 1000,
                                     max_n_iterations = 50000,
                                     depletion_handling = true,
                                     verbose = verbose
                             )
-    mark_bulk_bits!(reference_simulation.point_types.data)
-    mark_undep_bits!(reference_simulation.point_types.data, reference_simulation.imp_scale.data)
+    mark_bulk_bits!(sim.point_types.data)
+    mark_undep_bits!(sim.point_types.data, sim.imp_scale.data)
     det.is_simulated = true
 
     initialize_design!(det)
-    if is_depleted(reference_simulation.point_types)
-        populate_design!(det, reference_simulation, T(Vop), verbose = verbose)
+    if is_depleted(sim.point_types)
+        # TODO: if perturbation is small enough, is this necessary? It's adding most of the
+        # compute time. Skipping it would just compute a new depletion voltage but Vop would
+        # be inherited from the reference instead of landing at exactly Vdep + offset.
+        adapt_potential_to_depletion_plus_offset!(det, sim; verbose = verbose)
+        populate_design!(det, sim, det.Vop; verbose = verbose)
     end
-    reference_simulation
+    sim
 end

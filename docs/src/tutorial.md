@@ -273,8 +273,7 @@ exactly that:
 
 ```@example tutorial
 geo2 = InvertedCoaxGeometry(det.geometry;
-    pc_radius        = T(5.5),
-    dead_layer_depth = T(0.5),
+    pc_radius        = T(8.5)
 )
 det2 = InvertedCoaxDesign(det, geo2)
 ```
@@ -294,17 +293,17 @@ cold solve.
 
 ## 11. Persist metadata
 
-Three companion functions serialize to LEGEND-format metadata containers:
+Two companion functions serialize to LEGEND-format metadata containers:
 
 ```@example tutorial
-LDD.geo_to_meta(det.geometry; Vop = det.Vop, name = det.name)
+LDD.design_to_meta(det)
 ```
 
 ```@example tutorial
 LDD.boule_to_meta(boule, det)
 ```
 
-[`design_to_meta`](@ref) is the `DetectorDesign` flavour. None of them write
+`design_to_meta` is the `DetectorDesign` flavor (it just delegates to `geo_to_meta` with the design's `Vop` and `name`). None of them write
 to disk — choose the writer yourself:
 
 ```julia

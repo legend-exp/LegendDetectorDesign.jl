@@ -157,7 +157,26 @@ function boule_to_meta(boule::CrystallineBoule, det::DetectorDesign)
     )
 end
 
+"""
+    impurity_model_from_boule(boule::CrystallineBoule{T}, det::DetectorDesign{T})
+        -> AbstractImpurityDensity{T}
+
+Build the SSD impurity-density model that represents `boule`'s impurity
+profile as seen by the detector cut at `det.offset` along the boule axis.
+
+Picks the SSD type via `impurity_density_model(boule.impurity_model)`,
+populates it with `boule.impurity_model_parameters` and the offset, and
+sign-flips with `ssd_ptype` so densities follow SSD's p-type convention.
+
+Internal helper — shared between [`characterize!`](@ref) and the
+`Simulation(det, boule)` constructor below.
+"""
+impurity_model_from_boule(boule::CrystallineBoule{T}, det::DetectorDesign{T}) where {T} =
+    ssd_ptype * impurity_density_model(nameof(boule.impurity_model)){T}(
+        get_unitful_property(boule, :impurity_model_parameters),
+        get_unitful_property(det, :offset),
+    )
+
 function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, boule::CrystallineBoule{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
-    imp_model = ssd_ptype*impurity_density_model(nameof(boule.impurity_model)){T}(get_unitful_property(boule, :impurity_model_parameters), get_unitful_property(det, :offset))
-    Simulation{T}(det, imp_model, env; kwargs...)
+    Simulation{T}(det, impurity_model_from_boule(boule, det), env; kwargs...)
 end
