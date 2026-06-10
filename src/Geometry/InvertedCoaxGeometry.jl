@@ -178,7 +178,7 @@ function get_borehole_surface_volume(geo::InvertedCoaxGeometry{T, ValidGeometry}
 end
 
 """
-    design_2_meta(geo::InvertedCoaxGeometry{T, ValidGeometry};
+    geo_to_meta(geo::InvertedCoaxGeometry{T, ValidGeometry};
                   Vop = missing, name = "IC") -> PropDict
 
 Serialize an inverted-coax geometry into the LEGEND detector-metadata `PropDict`
@@ -188,9 +188,9 @@ layout (`type = "icpc"`).
 `default_operational_V` when `missing`. `name` is written to the `:name` field
 of the metadata.
 
-See also [`meta_2_geo`](@ref) for the inverse.
+See also [`meta_to_geo`](@ref) for the inverse.
 """
-function design_2_meta(geo::InvertedCoaxGeometry{T,ValidGeometry};
+function geo_to_meta(geo::InvertedCoaxGeometry{T,ValidGeometry};
         Vop::Union{Missing, <:Real} = missing,
         name::AbstractString = "IC"
     )::PropDict where {T}
@@ -223,16 +223,16 @@ function design_2_meta(geo::InvertedCoaxGeometry{T,ValidGeometry};
 end
 
 """
-    meta_2_geo(::Type{InvertedCoaxGeometry{T}}, meta::PropDict) -> InvertedCoaxGeometry{T}
+    meta_to_geo(::Type{InvertedCoaxGeometry{T}}, meta::PropDict) -> InvertedCoaxGeometry{T}
 
 Build an [`InvertedCoaxGeometry`](@ref) with element type `T` from a LEGEND
 detector-metadata `PropDict`.
 
-The metadata layout matches what [`design_2_meta`](@ref) emits. The dead-layer
+The metadata layout matches what [`geo_to_meta`](@ref) emits. The dead-layer
 depth defaults to `1` mm when `:dl_thickness_in_mm` is absent from
 `meta.characterization.manufacturer`.
 """
-function meta_2_geo(::Type{InvertedCoaxGeometry{T}}, meta::PropDict) where {T}
+function meta_to_geo(::Type{InvertedCoaxGeometry{T}}, meta::PropDict) where {T}
     dead_layer_depth = :dl_thickness_in_mm in keys(meta.characterization.manufacturer) ? meta.characterization.manufacturer.dl_thickness_in_mm : 1
     geo = meta.geometry
     InvertedCoaxGeometry{T}(

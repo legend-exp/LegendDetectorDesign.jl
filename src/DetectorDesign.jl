@@ -94,13 +94,13 @@ function show(io::IO, ::MIME"text/plain", det::DetectorDesign)
     show(io, det)
 end
 
-function design_2_meta(det::DetectorDesign{T})::PropDict where {T}
-    design_2_meta(det.geometry, Vop = det.Vop, name = det.name)   
+function design_to_meta(det::DetectorDesign{T})::PropDict where {T}
+    geo_to_meta(det.geometry, Vop = det.Vop, name = det.name)
 end
 
-function meta_2_design(::Type{T}, meta::PropDict) where {T}
+function meta_to_design(::Type{T}, meta::PropDict) where {T}
     if meta.type == "icpc"
-        geo = meta_2_geo(InvertedCoaxGeometry{T}, meta)
+        geo = meta_to_geo(InvertedCoaxGeometry{T}, meta)
         Vdep = :depletion_voltage_in_V in keys(meta.characterization.manufacturer) ? T(meta.characterization.manufacturer.depletion_voltage_in_V) : missing
         Vop = :recommended_voltage_in_V in keys(meta.characterization.manufacturer) ? T(meta.characterization.manufacturer.recommended_voltage_in_V) : missing
         DetectorDesign{T, typeof(geo)}(meta.name, geo, T(0), T(ge_76_density)*get_physical_volume(geo), false, missing, missing, Vdep, Vop)
@@ -109,26 +109,26 @@ function meta_2_design(::Type{T}, meta::PropDict) where {T}
     end
 end
 
-# meta_2_boule
+# meta_to_boule
 
 get_unitful_property(det::DetectorDesign, prop::Symbol) = get_unitful_property(det, Val(prop))
 
 get_unitful_property(det::DetectorDesign, ::Val{:offset}) = det.offset * internal_length_unit
 
 function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
-    meta = design_2_meta(det)
+    meta = design_to_meta(det)
     sim = Simulation{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false; kwargs...)
     sim.detector = SolidStateDetector(sim.detector, imp_model)
     sim
 end
 
 function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
-    meta = design_2_meta(det)
+    meta = design_to_meta(det)
     ssd = SolidStateDetector{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false; kwargs...)
     SolidStateDetector(ssd, imp_model)
 end
 
 function SolidStateDetectors.SolidStateDetector{T}(det::DetectorDesign{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
-    meta = design_2_meta(det)
+    meta = design_to_meta(det)
     SolidStateDetector{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false; kwargs...)
 end
