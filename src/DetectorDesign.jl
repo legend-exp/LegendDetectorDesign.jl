@@ -232,11 +232,6 @@ placeholder constant in place and is useful for geometry-only inspection.
 `kwargs` are forwarded to SSD's underlying constructor (e.g. `T` precision
 overrides, `verbose`, etc.).
 """
-function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, boule::CrystallineBoule{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
-    imp_model = ssd_ptype*impurity_density_model(nameof(boule.impurity_model)){T}(get_unitful_property(boule, :impurity_model_parameters), get_unitful_property(det, :offset))
-    Simulation{T}(det, imp_model, env; kwargs...)
-end
-
 function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, imp_model::AbstractImpurityDensity{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
     meta = design_to_meta(det)
     sim = Simulation{T}(LegendData, meta, get_default_xtal_meta(det), env, verbose = false; kwargs...)

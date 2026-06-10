@@ -157,3 +157,8 @@ function boule_to_meta(boule::CrystallineBoule, det::DetectorDesign)
         )
     )
 end
+
+function SolidStateDetectors.Simulation{T}(det::DetectorDesign{T}, boule::CrystallineBoule{T}, env::HPGeEnvironment = HPGeEnvironment(); kwargs...) where {T<:AbstractFloat}
+    imp_model = ssd_ptype*impurity_density_model(nameof(boule.impurity_model)){T}(get_unitful_property(boule, :impurity_model_parameters), get_unitful_property(det, :offset))
+    Simulation{T}(det, imp_model, env; kwargs...)
+end
